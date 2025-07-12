@@ -1,47 +1,32 @@
 from telebot import types
 from config import BOT_NAME
 from handlers import keyboards
+from services.wallet_service import (
+    get_balance, get_purchases, get_transfers,
+    has_sufficient_balance, transfer_balance
+)
 
-# قاعدة بيانات مؤقتة
-users_wallet = {}
-
-# ✅ تسجيل مستخدم جديد
-def register_user_if_not_exist(user_id):
-    if user_id not in users_wallet:
-        users_wallet[user_id] = {
-            "balance": 0,
-            "purchases": [],
-            "transfers": []
-        }
-
-# ✅ تحديث الرصيد
-def update_balance(user_id, amount):
-    register_user_if_not_exist(user_id)
-    users_wallet[user_id]["balance"] += amount
+transfer_steps = {}
 
 # ✅ عرض المحفظة
 def show_wallet(bot, message, history=None):
     user_id = message.from_user.id
-    register_user_if_not_exist(user_id)
-    balance = users_wallet[user_id]["balance"]
+    balance = get_balance(user_id)
 
     if history is not None:
         history.setdefault(user_id, []).append("wallet")
 
-    balance_str = str(balance)  # حذف الفواصل
-
-    text = f"🧾 رقم حسابك: `{user_id}`\n💰 رصيدك الحالي: {balance_str} ل.س"
+    text = f"🧾 رقم حسابك: `{user_id}`\n💰 رصيدك الحالي: {balance:,} ل.س"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=keyboards.wallet_menu())
 
 # ✅ عرض المشتريات
 def show_purchases(bot, message, history=None):
     user_id = message.from_user.id
-    register_user_if_not_exist(user_id)
+    purchases = get_purchases(user_id)
 
     if history is not None:
         history.setdefault(user_id, []).append("wallet")
 
-    purchases = users_wallet[user_id]["purchases"]
     if not purchases:
         bot.send_message(message.chat.id, "📦 لا يوجد مشتريات حتى الآن.", reply_markup=keyboards.wallet_menu())
     else:
@@ -51,20 +36,16 @@ def show_purchases(bot, message, history=None):
 # ✅ عرض سجل التحويلات
 def show_transfers(bot, message, history=None):
     user_id = message.from_user.id
-    register_user_if_not_exist(user_id)
+    transfers = get_transfers(user_id)
 
     if history is not None:
         history.setdefault(user_id, []).append("wallet")
 
-    transfers = users_wallet[user_id]["transfers"]
     if not transfers:
         bot.send_message(message.chat.id, "📄 لا يوجد عمليات تحويل بعد.", reply_markup=keyboards.wallet_menu())
     else:
         text = "📑 سجل التحويلات:\n" + "\n".join(transfers)
         bot.send_message(message.chat.id, text, reply_markup=keyboards.wallet_menu())
-
-# ⏳ متغير لحالة التحويل
-transfer_steps = {}
 
 # ✅ تسجيل الأوامر
 def register(bot, history):
@@ -112,11 +93,6 @@ def register(bot, history):
             bot.send_message(msg.chat.id, "❌ الرجاء إدخال رقم ID صحيح.")
             return
 
-        if target_id not in users_wallet:
-            bot.send_message(msg.chat.id, "❌ هذا الرقم غير موجود.")
-            transfer_steps.pop(msg.from_user.id, None)
-            return
-
         transfer_steps[msg.from_user.id].update({"step": "awaiting_amount", "target_id": target_id})
         bot.send_message(msg.chat.id, "💵 أدخل المبلغ الذي تريد تحويله:")
 
@@ -129,17 +105,14 @@ def register(bot, history):
             bot.send_message(msg.chat.id, "❌ الرجاء إدخال مبلغ صالح.")
             return
 
-        balance = users_wallet[user_id]["balance"]
         if amount <= 0:
             bot.send_message(msg.chat.id, "❌ لا يمكن تحويل مبلغ صفر أو أقل.")
             return
 
-        if balance - amount < 8000:
-            needed = (8000 + amount) - balance
+        if not has_sufficient_balance(user_id, amount + 8000):
             bot.send_message(
                 msg.chat.id,
-                f"❌ لا يمكنك تنفيذ العملية.\n🔔 تحتاج إلى `{needed:,} ل.س` إضافي.",
-                parse_mode="Markdown",
+                f"❌ لا يمكنك تنفيذ العملية. تحتاج إلى مبلغ إضافي لتبقى على الأقل 8000 ل.س في محفظتك.",
                 reply_markup=keyboards.wallet_menu()
             )
             transfer_steps.pop(user_id, None)
@@ -163,13 +136,11 @@ def register(bot, history):
         amount = step["amount"]
         target_id = step["target_id"]
 
-        users_wallet[user_id]["balance"] -= amount
-        users_wallet[target_id]["balance"] += amount
-
-        users_wallet[user_id]["transfers"].append(f"أرسلت {amount} ل.س إلى {target_id}")
-        users_wallet[target_id]["transfers"].append(f"استلمت {amount} ل.س من {user_id}")
+        success = transfer_balance(user_id, target_id, amount)
+        if not success:
+            bot.send_message(msg.chat.id, "❌ فشل التحويل. تحقق من الرصيد والمحفظة.")
+            return
 
         bot.send_message(msg.chat.id, "✅ تم تحويل المبلغ بنجاح.", reply_markup=keyboards.wallet_menu())
         transfer_steps.pop(user_id, None)
-
         show_wallet(bot, msg, history)
