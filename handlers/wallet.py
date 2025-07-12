@@ -109,6 +109,7 @@ def register(bot, history):
             bot.send_message(msg.chat.id, "❌ لا يمكن تحويل مبلغ صفر أو أقل.")
             return
 
+        # يجب أن يبقى 8000 كحد أدنى بعد التحويل
         if not has_sufficient_balance(user_id, amount + 8000):
             bot.send_message(
                 msg.chat.id,
