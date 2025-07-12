@@ -1,6 +1,6 @@
 from telebot import types
 from config import ADMIN_MAIN_ID
-from handlers.wallet_service import has_sufficient_balance, deduct_balance
+from services.wallet_service import has_sufficient_balance, deduct_balance
 from handlers.keyboards import media_services_menu  # تم دمج الكيبورد هنا
 
 user_media_state = {}
