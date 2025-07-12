@@ -3,6 +3,8 @@ import telebot
 from config import API_TOKEN
 from handlers import start, wallet, support, admin, recharge, cash_transfer, products
 from handlers.keyboards import main_menu, products_menu, game_categories, cash_transfer_menu, syrian_balance_menu
+from handlers import media_services
+media_services.register(bot, user_state)
 
 bot = telebot.TeleBot(API_TOKEN)
 
