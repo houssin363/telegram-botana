@@ -27,6 +27,7 @@ def products_menu():
         types.KeyboardButton("💳 تحويل رصيد سوري"),
         types.KeyboardButton("🌐 دفع مزودات الإنترنت ADSL"),
         types.KeyboardButton("🎓 دفع رسوم جامعية فصلية"),
+        types.KeyboardButton("🎨 خدمات تصميم وإدارة سوشيال ميديا"),
         types.KeyboardButton("⬅️ رجوع")
     )
     return markup
@@ -58,5 +59,17 @@ def cash_transfer_menu():
         types.KeyboardButton("شام كاش"),
         types.KeyboardButton("⬅️ رجوع"),
         types.KeyboardButton("🔄 ابدأ من جديد")
+    )
+    return markup
+
+def media_services_menu():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup.add(
+        types.KeyboardButton("🖼️ تصميم لوغو احترافي"),
+        types.KeyboardButton("📱 إدارة ونشر يومي"),
+        types.KeyboardButton("📢 إطلاق حملة إعلانية"),
+        types.KeyboardButton("🧾 باقة متكاملة شهرية"),
+        types.KeyboardButton("✏️ طلب مخصص"),
+        types.KeyboardButton("⬅️ رجوع")
     )
     return markup
