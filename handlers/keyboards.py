@@ -15,7 +15,24 @@ def main_menu():
 
 def links_menu():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.add(types.KeyboardButton("⬅️ رجوع"))
+    return markup
+
+def products_menu():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
     markup.add(
+        types.KeyboardButton("🎮 شحن ألعاب و تطبيقات"),
+        # يمكنك إضافة أنواع منتجات أخرى مثل بطاقات أو كاش هنا لاحقاً
+        types.KeyboardButton("⬅️ رجوع")
+    )
+    return markup
+
+def game_categories():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup.add(
+        types.KeyboardButton("🎯 شحن شدات ببجي العالمية"),
+        types.KeyboardButton("🔥 شحن جواهر فري فاير"),
+        types.KeyboardButton("🏏 تطبيق جواكر"),
         types.KeyboardButton("⬅️ رجوع")
     )
     return markup
