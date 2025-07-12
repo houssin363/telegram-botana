@@ -1,9 +1,43 @@
-# الخدمات المتعلقة بالمحفظة (العمليات على الرصيد وغيره)
+# 🏦 الخدمات المتعلقة بالمحفظة باستخدام Supabase
 
+from database.db import get_table
+from datetime import datetime
+
+# اسم الجدول الذي يحتوي بيانات المستخدمين (من config.py)
+TABLE_NAME = "houssin363"
+
+# ✅ جلب رصيد المستخدم من قاعدة البيانات
 def get_balance(user_id):
-    # في المستقبل: جلب الرصيد من قاعدة البيانات بناءً على user_id
-    return 150  # رصيد افتراضي للتجربة
+    response = get_table(TABLE_NAME).select("balance").eq("id", user_id).single().execute()
+    if response.data and "balance" in response.data:
+        return response.data["balance"]
+    return 0
 
+# ✅ التحقق من وجود رصيد كافٍ
+def has_sufficient_balance(user_id, amount):
+    balance = get_balance(user_id)
+    return balance >= amount
+
+# ✅ خصم مبلغ من رصيد المستخدم
+def deduct_balance(user_id, amount):
+    current_balance = get_balance(user_id)
+    new_balance = current_balance - amount
+    get_table(TABLE_NAME).update({"balance": new_balance}).eq("id", user_id).execute()
+    record_transaction(user_id, -amount, "خصم تلقائي")
+
+# ✅ إضافة مبلغ إلى الرصيد
+def add_balance(user_id, amount):
+    current_balance = get_balance(user_id)
+    new_balance = current_balance + amount
+    get_table(TABLE_NAME).update({"balance": new_balance}).eq("id", user_id).execute()
+    record_transaction(user_id, amount, "إيداع يدوي")
+
+# ✅ تسجيل عملية مالية
 def record_transaction(user_id, amount, description):
-    # في المستقبل: سجل العملية في قاعدة البيانات
-    print(f"🔁 عملية مالية: المستخدم={user_id} | المبلغ={amount} | {description}")
+    transaction = {
+        "user_id": user_id,
+        "amount": amount,
+        "description": description,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    get_table("transactions").insert(transaction).execute()
