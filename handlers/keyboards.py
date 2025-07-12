@@ -24,7 +24,16 @@ def products_menu():
     markup.add(
         types.KeyboardButton("🎮 شحن ألعاب و تطبيقات"),
         types.KeyboardButton("💵 شراء رصيد كاش"),
-        # يمكنك إضافة أنواع منتجات أخرى لاحقاً
+        types.KeyboardButton("💳 تحويل رصيد سوري"),
+        types.KeyboardButton("⬅️ رجوع")
+    )
+    return markup
+
+def syrian_balance_menu():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(
+        types.KeyboardButton("📶 رصيد سيرياتيل وحدات"),
+        types.KeyboardButton("📶 رصيد أم تي أن وحدات"),
         types.KeyboardButton("⬅️ رجوع")
     )
     return markup
