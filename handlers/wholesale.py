@@ -53,20 +53,15 @@ def register(bot, user_state):
         data = user_wholesale_state[user_id]
         data["store_name"] = msg.text.strip()
 
-        text = (
-            "🛍️ طلب جملة جديد من تاجر:
+       text = f"""
+🛍️ طلب جملة جديد من تاجر:
 
-"
-            f"👤 المستخدم: {msg.from_user.first_name} | ID: {user_id}
-"
-            f"📦 الطلب: {data['products']}
-"
-            f"🏪 المتجر: {data['store_name']}
-"
-            f"📍 العنوان: {data['address']}
-"
-            f"📞 الهاتف: {data['phone']}"
-        )
+👤 المستخدم: {msg.from_user.first_name} | ID: {user_id}
+📦 الطلب: {data['products']}
+🏪 المتجر: {data['store_name']}
+📍 العنوان: {data['address']}
+📞 الهاتف: {data['phone']}
+"""
 
         bot.send_message(ADMIN_MAIN_ID, text)
         bot.send_message(msg.chat.id, "✅ تم إرسال طلبك للإدارة، سيتم التواصل معك قريبًا.")
