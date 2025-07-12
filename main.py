@@ -1,10 +1,8 @@
 import os
 import telebot
 from config import API_TOKEN
-from handlers import start, wallet, support, admin, recharge, cash_transfer, products
+from handlers import start, wallet, support, admin, recharge, cash_transfer, products, media_services, wholesale
 from handlers.keyboards import main_menu, products_menu, game_categories, cash_transfer_menu, syrian_balance_menu
-from handlers import media_services
-media_services.register(bot, user_state)
 
 bot = telebot.TeleBot(API_TOKEN)
 
@@ -19,6 +17,8 @@ admin.register(bot, user_state)
 recharge.register(bot, user_state)
 cash_transfer.register(bot, user_state)
 products.register(bot, user_state)
+media_services.register(bot, user_state)
+wholesale.register(bot, user_state)
 
 # ⬅️ زر الرجوع الذكي
 @bot.message_handler(func=lambda msg: msg.text == "⬅️ رجوع")
