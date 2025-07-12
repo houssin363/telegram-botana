@@ -1,6 +1,5 @@
 from telebot import types
 from config import ADMIN_MAIN_ID
-from handlers.wallet import register_user_if_not_exist, users_wallet
 from handlers import keyboards  # ✅ الكيبورد الموحد
 
 recharge_requests = {}
