@@ -7,7 +7,7 @@ from services.wallet_service import (
 )
 
 # ✅ اختبار اتصال Supabase (مؤقت)
-print("🔄 [DEBUG] اتصال Supabase ناجح. الرصيد:", get_balance(6935846121))  # ← استبدلت بـ ADMIN_MAIN_ID الحقيقي
+print("🔄 [DEBUG] اتصال Supabase ناجح. الرصيد:", get_balance(6935846121))
 
 transfer_steps = {}
 
