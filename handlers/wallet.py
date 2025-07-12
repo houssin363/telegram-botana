@@ -3,13 +3,27 @@ from config import BOT_NAME
 from handlers import keyboards
 from services.wallet_service import (
     get_balance, get_purchases, get_transfers,
-    has_sufficient_balance, transfer_balance
+    has_sufficient_balance, transfer_balance, get_table
 )
 
 # ✅ اختبار اتصال Supabase (مؤقت)
 print("🔄 [DEBUG] اتصال Supabase ناجح. الرصيد:", get_balance(6935846121))
 
 transfer_steps = {}
+
+# ✅ دالة تحديث الرصيد
+def update_balance(user_id, new_balance):
+    get_table("houssin363").update({"balance": new_balance}).eq("user_id", user_id).execute()
+
+# ✅ دالة تسجيل المستخدم عند أول دخول
+def register_user_if_not_exist(user_id, name="مستخدم جديد"):
+    if get_balance(user_id) == 0:
+        get_table("houssin363").insert({
+            "user_id": user_id,
+            "name": name,
+            "balance": 0,
+            "purchases": "[]"
+        }).execute()
 
 # ✅ عرض المحفظة
 def show_wallet(bot, message, history=None):
