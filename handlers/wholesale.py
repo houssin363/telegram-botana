@@ -53,7 +53,7 @@ def register(bot, user_state):
         data = user_wholesale_state[user_id]
         data["store_name"] = msg.text.strip()
 
-       text = f"""
+        text = f"""
 🛍️ طلب جملة جديد من تاجر:
 
 👤 المستخدم: {msg.from_user.first_name} | ID: {user_id}
