@@ -25,6 +25,8 @@ def products_menu():
         types.KeyboardButton("🎮 شحن ألعاب و تطبيقات"),
         types.KeyboardButton("💵 شراء رصيد كاش"),
         types.KeyboardButton("💳 تحويل رصيد سوري"),
+        types.KeyboardButton("🌐 دفع مزودات الإنترنت ADSL"),
+        types.KeyboardButton("🎓 دفع رسوم جامعية فصلية"),
         types.KeyboardButton("⬅️ رجوع")
     )
     return markup
