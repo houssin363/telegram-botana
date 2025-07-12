@@ -1,3 +1,4 @@
+
 from telebot import types
 
 def main_menu():
@@ -28,6 +29,7 @@ def products_menu():
         types.KeyboardButton("🌐 دفع مزودات الإنترنت ADSL"),
         types.KeyboardButton("🎓 دفع رسوم جامعية فصلية"),
         types.KeyboardButton("🎨 خدمات تصميم وإدارة سوشيال ميديا"),
+        types.KeyboardButton("📦 طلب جملة للتجار"),
         types.KeyboardButton("⬅️ رجوع")
     )
     return markup
