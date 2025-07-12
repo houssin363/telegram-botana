@@ -1,6 +1,7 @@
 from telebot import types
 from config import ADMIN_MAIN_ID
 from handlers.wallet_service import has_sufficient_balance, deduct_balance
+from handlers.keyboards import media_services_menu  # تم دمج الكيبورد هنا
 
 user_media_state = {}
 
@@ -18,10 +19,7 @@ MEDIA_PRODUCTS = {
 
 def show_media_services(bot, message, user_state):
     user_state[message.from_user.id] = "media_services"
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
-    for name in MEDIA_PRODUCTS.keys():
-        markup.add(types.KeyboardButton(name))
-    markup.add(types.KeyboardButton("⬅️ رجوع"))
+    markup = media_services_menu()
     bot.send_message(message.chat.id, "🎨 اختر الخدمة المطلوبة:", reply_markup=markup)
 
 def register(bot, user_state):
