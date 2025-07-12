@@ -6,6 +6,9 @@ from services.wallet_service import (
     has_sufficient_balance, transfer_balance
 )
 
+# ✅ اختبار اتصال Supabase (مؤقت)
+print("🔄 [DEBUG] اتصال Supabase ناجح. الرصيد:", get_balance(6935846121))  # ← استبدلت بـ ADMIN_MAIN_ID الحقيقي
+
 transfer_steps = {}
 
 # ✅ عرض المحفظة
@@ -109,7 +112,6 @@ def register(bot, history):
             bot.send_message(msg.chat.id, "❌ لا يمكن تحويل مبلغ صفر أو أقل.")
             return
 
-        # يجب أن يبقى 8000 كحد أدنى بعد التحويل
         if not has_sufficient_balance(user_id, amount + 8000):
             bot.send_message(
                 msg.chat.id,
