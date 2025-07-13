@@ -1,6 +1,6 @@
 from telebot import types
 from database.models.product import Product
-from handlers.wallet_service import has_sufficient_balance, deduct_balance
+from services.wallet_service import has_sufficient_balance, deduct_balance
 from config import ADMIN_MAIN_ID
 
 # منتجات سيرياتيل وحدات
