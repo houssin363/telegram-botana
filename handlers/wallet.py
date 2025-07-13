@@ -3,31 +3,17 @@ from config import BOT_NAME
 from handlers import keyboards
 from services.wallet_service import (
     get_balance, get_purchases, get_transfers,
-    has_sufficient_balance, transfer_balance, get_table
+    has_sufficient_balance, transfer_balance, get_table,
+    register_user_if_not_exist,  # ✅ الاستيراد الصحيح
 )
 
-# ⚠️ تأكد أن get_table مُعرَّفة في services.wallet_service
-
 transfer_steps = {}
-
-# ✅ دالة تحديث الرصيد (إذا احتجت إليها)
-def update_balance(user_id, new_balance):
-    get_table("houssin363").update({"balance": new_balance}).eq("user_id", user_id).execute()
-
-# ✅ تسجيل المستخدم عند أول دخول
-def register_user_if_not_exist(user_id, name="مستخدم جديد"):
-    if get_balance(user_id) == 0:
-        get_table("houssin363").insert({
-            "user_id": user_id,
-            "name": name,
-            "balance": 0,
-            "purchases": "[]"
-        }).execute()
 
 # ✅ عرض المحفظة
 def show_wallet(bot, message, history=None):
     user_id = message.from_user.id
-    register_user_if_not_exist(user_id, message.from_user.full_name)
+    name = message.from_user.full_name
+    register_user_if_not_exist(user_id, name)  # تأكد من تسجيل المستخدم
     balance = get_balance(user_id)
 
     if history is not None:
@@ -47,6 +33,8 @@ def show_wallet(bot, message, history=None):
 # ✅ عرض المشتريات
 def show_purchases(bot, message, history=None):
     user_id = message.from_user.id
+    name = message.from_user.full_name
+    register_user_if_not_exist(user_id, name)
     purchases = get_purchases(user_id)
 
     if history is not None:
@@ -61,6 +49,8 @@ def show_purchases(bot, message, history=None):
 # ✅ عرض سجل التحويلات
 def show_transfers(bot, message, history=None):
     user_id = message.from_user.id
+    name = message.from_user.full_name
+    register_user_if_not_exist(user_id, name)
     transfers = get_transfers(user_id)
 
     if history is not None:
@@ -74,22 +64,25 @@ def show_transfers(bot, message, history=None):
 
 # ✅ تسجيل الأوامر
 def register(bot, user_state):
-    
+
     @bot.message_handler(func=lambda msg: msg.text == "💰 محفظتي")
     def handle_wallet(msg):
         show_wallet(bot, msg, user_state)
-        
+
     @bot.message_handler(func=lambda msg: msg.text == "🛍️ مشترياتي")
     def handle_purchases(msg):
-        show_purchases(bot, msg, history)
+        show_purchases(bot, msg, user_state)
 
     @bot.message_handler(func=lambda msg: msg.text == "📑 سجل التحويلات")
     def handle_transfers(msg):
-        show_transfers(bot, msg, history)
+        show_transfers(bot, msg, user_state)
 
     @bot.message_handler(func=lambda msg: msg.text == "🔁 تحويل من محفظتك إلى محفظة عميل آخر")
     def handle_transfer_notice(msg):
-        history.setdefault(msg.from_user.id, []).append("wallet")
+        user_id = msg.from_user.id
+        name = msg.from_user.full_name
+        register_user_if_not_exist(user_id, name)
+        user_state.setdefault(user_id, []).append("wallet")
         warning = (
             "⚠️ تنويه:\n"
             "هذه العملية خاصة بين المستخدمين فقط.\n"
@@ -158,10 +151,13 @@ def register(bot, user_state):
             return
         amount = step["amount"]
         target_id = step["target_id"]
+        # قبل التحويل، سجل العميل إذا كان جديداً
+        name = msg.from_user.full_name
+        register_user_if_not_exist(user_id, name)
         success = transfer_balance(user_id, target_id, amount)
         if not success:
             bot.send_message(msg.chat.id, "❌ فشل التحويل. تحقق من الرصيد والمحفظة.")
             return
         bot.send_message(msg.chat.id, "✅ تم تحويل المبلغ بنجاح.", reply_markup=keyboards.wallet_menu())
         transfer_steps.pop(user_id, None)
-        show_wallet(bot, msg, history)
+        show_wallet(bot, msg, user_state)
