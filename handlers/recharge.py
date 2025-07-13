@@ -114,24 +114,14 @@ def register(bot, history):
                 bot.answer_callback_query(call.id, "لا يوجد طلب قيد المعالجة.")
                 return
 
-            name = call.from_user.full_name if hasattr(call.from_user, 'full_name') else call.from_user.first_name
+            # تأكد من تسجيل المستخدم
+            name = call.from_user.full_name or call.from_user.first_name
             register_user_if_not_exist(user_id, name)
 
             username_part = f" (@{call.from_user.username})" if call.from_user.username else ""
             caption = (
-                f"💳 طلب شحن محفظة جديد:
-"
-                f"👤 المستخدم: {call.from_user.first_name}{username_part}
-"
-                f"🆔 ID: `{user_id}`
-"
-                f"💵 المبلغ: {data['amount']:,} ل.س
-"
-                f"💳 الطريقة: {data['method']}
-"
-                f"🔢 رقم الإشعار: `{data['ref']}`"
-            )
-                f"👤 المستخدم: {call.from_user.first_name} (@{call.from_user.username})\n"
+                f"💳 طلب شحن محفظة جديد:\n"
+                f"👤 المستخدم: {call.from_user.first_name}{username_part}\n"
                 f"🆔 ID: `{user_id}`\n"
                 f"💵 المبلغ: {data['amount']:,} ل.س\n"
                 f"💳 الطريقة: {data['method']}\n"
@@ -212,32 +202,4 @@ def register(bot, history):
                     caption=f"{call.message.caption}\n\n✅ *تم الشحن*",
                     parse_mode="Markdown",
                 )
-                bot.answer_callback_query(call.id, "✅ تم شحن المحفظة.")
-                bot.send_message(
-                    target_id,
-                    f"🎉 تم شحن محفظتك بـ {amount:,} ل.س بنجاح!"
-                )
-            else:  # reject_add_
-                _, _, user_id_str = call.data.split("_", 2)
-                target_id = int(user_id_str)
-
-                recharge_pending.discard(target_id)
-                recharge_requests.pop(target_id, None)
-
-                bot.edit_message_caption(
-                    chat_id=call.message.chat.id,
-                    message_id=call.message.message_id,
-                    caption=f"{call.message.caption}\n\n❌ *تم الرفض*",
-                    parse_mode="Markdown",
-                )
-                bot.answer_callback_query(call.id, "❌ تم رفض الطلب.")
-                bot.send_message(
-                    target_id,
-                    "⚠️ تم رفض طلب شحن محفظتك، تواصل مع الإدارة إذا كان هناك خطأ."
-                )
-
-            # نهاية try
-        except Exception as e:
-            bot.answer_callback_query(call.id, "حدث خطأ غير متوقع.")
-            raise
-
+                bot.answer
