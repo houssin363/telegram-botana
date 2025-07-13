@@ -6,16 +6,15 @@ from services.wallet_service import (
     has_sufficient_balance, transfer_balance, get_table
 )
 
-# ✅ اختبار اتصال Supabase (مؤقت)
-print("🔄 [DEBUG] اتصال Supabase ناجح. الرصيد:", get_balance(6935846121))
+# ⚠️ تأكد أن get_table مُعرَّفة في services.wallet_service
 
 transfer_steps = {}
 
-# ✅ دالة تحديث الرصيد
+# ✅ دالة تحديث الرصيد (إذا احتجت إليها)
 def update_balance(user_id, new_balance):
     get_table("houssin363").update({"balance": new_balance}).eq("user_id", user_id).execute()
 
-# ✅ دالة تسجيل المستخدم عند أول دخول
+# ✅ تسجيل المستخدم عند أول دخول
 def register_user_if_not_exist(user_id, name="مستخدم جديد"):
     if get_balance(user_id) == 0:
         get_table("houssin363").insert({
@@ -28,13 +27,22 @@ def register_user_if_not_exist(user_id, name="مستخدم جديد"):
 # ✅ عرض المحفظة
 def show_wallet(bot, message, history=None):
     user_id = message.from_user.id
+    register_user_if_not_exist(user_id, message.from_user.full_name)
     balance = get_balance(user_id)
 
     if history is not None:
         history.setdefault(user_id, []).append("wallet")
 
-    text = f"🧾 رقم حسابك: `{user_id}`\n💰 رصيدك الحالي: {balance:,} ل.س"
-    bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=keyboards.wallet_menu())
+    text = (
+        f"🧾 رقم حسابك: `{user_id}`\n"
+        f"💰 رصيدك الحالي: {balance:,} ل.س"
+    )
+    bot.send_message(
+        message.chat.id,
+        text,
+        parse_mode="Markdown",
+        reply_markup=keyboards.wallet_menu()
+    )
 
 # ✅ عرض المشتريات
 def show_purchases(bot, message, history=None):
@@ -109,7 +117,6 @@ def register(bot, history):
         except:
             bot.send_message(msg.chat.id, "❌ الرجاء إدخال رقم ID صحيح.")
             return
-
         transfer_steps[msg.from_user.id].update({"step": "awaiting_amount", "target_id": target_id})
         bot.send_message(msg.chat.id, "💵 أدخل المبلغ الذي تريد تحويله:")
 
@@ -121,27 +128,27 @@ def register(bot, history):
         except:
             bot.send_message(msg.chat.id, "❌ الرجاء إدخال مبلغ صالح.")
             return
-
         if amount <= 0:
             bot.send_message(msg.chat.id, "❌ لا يمكن تحويل مبلغ صفر أو أقل.")
             return
-
         if not has_sufficient_balance(user_id, amount + 8000):
             bot.send_message(
                 msg.chat.id,
-                f"❌ لا يمكنك تنفيذ العملية. تحتاج إلى مبلغ إضافي لتبقى على الأقل 8000 ل.س في محفظتك.",
+                f"❌ تحتاج إلى إضافي ٨٠٠٠ ل.س كحد أدنى.",
                 reply_markup=keyboards.wallet_menu()
             )
             transfer_steps.pop(user_id, None)
             return
-
         transfer_steps[user_id].update({"step": "awaiting_confirm", "amount": amount})
         target_id = transfer_steps[user_id]["target_id"]
-
         kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
         kb.add("✅ تأكيد التحويل", "⬅️ رجوع", "🔄 ابدأ من جديد")
-        msg_text = f"📤 هل أنت متأكد من تحويل `{amount:,} ل.س` إلى الحساب `{target_id}`؟"
-        bot.send_message(msg.chat.id, msg_text, parse_mode="Markdown", reply_markup=kb)
+        bot.send_message(
+            msg.chat.id,
+            f"📤 هل أنت متأكد من تحويل `{amount:,} ل.س` إلى الحساب `{target_id}`؟",
+            parse_mode="Markdown",
+            reply_markup=kb
+        )
 
     @bot.message_handler(func=lambda msg: msg.text == "✅ تأكيد التحويل")
     def confirm_transfer(msg):
@@ -149,15 +156,12 @@ def register(bot, history):
         step = transfer_steps.get(user_id)
         if not step or step.get("step") != "awaiting_confirm":
             return
-
         amount = step["amount"]
         target_id = step["target_id"]
-
         success = transfer_balance(user_id, target_id, amount)
         if not success:
             bot.send_message(msg.chat.id, "❌ فشل التحويل. تحقق من الرصيد والمحفظة.")
             return
-
         bot.send_message(msg.chat.id, "✅ تم تحويل المبلغ بنجاح.", reply_markup=keyboards.wallet_menu())
         transfer_steps.pop(user_id, None)
         show_wallet(bot, msg, history)
