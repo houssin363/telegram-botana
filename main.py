@@ -2,7 +2,11 @@ import os
 import telebot
 from config import API_TOKEN
 from handlers import start, wallet, support, admin, recharge, cash_transfer, products, media_services, wholesale
-from handlers.keyboards import main_menu, products_menu, game_categories, cash_transfer_menu, syrian_balance_menu
+from handlers.keyboards import (
+    main_menu, products_menu, game_categories,
+    recharge_menu, cash_transfer_menu, syrian_balance_menu,
+    wallet_menu, support_menu, links_menu, media_services_menu
+)
 
 bot = telebot.TeleBot(API_TOKEN)
 
