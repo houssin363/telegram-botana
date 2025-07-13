@@ -7,8 +7,6 @@ def main_menu():
         types.KeyboardButton("🛒 المنتجات"),
         types.KeyboardButton("💳 إعادة الشحن"),
         types.KeyboardButton("💰 محفظتي"),
-        types.KeyboardButton("📤 تحويل رصيد"),
-        types.KeyboardButton("🧧 تحويل كاش من محفظتك"),
         types.KeyboardButton("🛠️ الدعم الفني"),
         types.KeyboardButton("🔄 ابدأ من جديد"),
         types.KeyboardButton("🌐 صفحتنا")
@@ -28,6 +26,8 @@ def products_menu():
         types.KeyboardButton("💳 تحويل رصيد سوري"),
         types.KeyboardButton("🌐 دفع مزودات الإنترنت ADSL"),
         types.KeyboardButton("🎓 دفع رسوم جامعية فصلية"),
+        types.KeyboardButton("📤 تحويل رصيد"),
+        types.KeyboardButton("🧧 تحويل كاش من محفظتك"),
         types.KeyboardButton("🎨 خدمات تصميم وإدارة سوشيال ميديا"),
         types.KeyboardButton("📦 طلب جملة للتجار"),
         types.KeyboardButton("⬅️ رجوع")
