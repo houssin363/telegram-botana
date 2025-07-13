@@ -9,6 +9,7 @@ def register(bot, history):
 
     @bot.message_handler(func=lambda msg: msg.text == "🛠️ الدعم الفني")
 def request_support(msg):
+    
         user_id = msg.from_user.id
         if user_id in pending_support:
             bot.send_message(msg.chat.id, "⏳ تم إرسال استفسارك بالفعل. الرجاء الانتظار حتى يتم الرد من الإدارة.")
