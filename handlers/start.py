@@ -20,9 +20,9 @@ def register(bot, user_history):
             )
             return
 
-        # بعد الاشتراك، أظهر زر الدخول للقائمة الرئيسية
+        # بعد الاشتراك، أظهر زر الدخول للقائمة الرئيسية باسم جديد
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.add("🚀 انتقل إلى القائمة الرئيسية")
+        markup.add("🚀 ابدأ بالتسوق العالمي")
         bot.send_message(
             message.chat.id,
             WELCOME_MESSAGE,
@@ -31,7 +31,7 @@ def register(bot, user_history):
         )
         user_history[user_id] = []
 
-    @bot.message_handler(func=lambda msg: msg.text == "🚀 انتقل إلى القائمة الرئيسية")
+    @bot.message_handler(func=lambda msg: msg.text == "🚀 ابدأ بالتسوق العالمي")
     def enter_main_menu(msg):
         user_id = msg.from_user.id
         name = msg.from_user.full_name if hasattr(msg.from_user, "full_name") else msg.from_user.first_name
