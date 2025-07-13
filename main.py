@@ -1,11 +1,31 @@
 import os
 import telebot
 from config import API_TOKEN
-from handlers import start, wallet, support, admin, recharge, cash_transfer, products, media_services, wholesale
+
+# استيراد جميع الهاندلرز
+from handlers import (
+    start,
+    wallet,
+    support,
+    admin,
+    recharge,
+    cash_transfer,
+    products,
+    media_services,
+    wholesale,
+    syr_units       # أضفنا هذا السطر
+)
 from handlers.keyboards import (
-    main_menu, products_menu, game_categories,
-    recharge_menu, cash_transfer_menu, syrian_balance_menu,
-    wallet_menu, support_menu, links_menu, media_services_menu
+    main_menu,
+    products_menu,
+    game_categories,
+    recharge_menu,
+    cash_transfer_menu,
+    syrian_balance_menu,
+    wallet_menu,
+    support_menu,
+    links_menu,
+    media_services_menu
 )
 
 bot = telebot.TeleBot(API_TOKEN)
@@ -23,6 +43,7 @@ cash_transfer.register(bot, user_state)
 products.register(bot, user_state)
 media_services.register(bot, user_state)
 wholesale.register(bot, user_state)
+syr_units.register(bot, user_state)    # أضفنا هذه السطر لتسجيل syr_units
 
 # ⬅️ زر الرجوع الذكي
 @bot.message_handler(func=lambda msg: msg.text == "⬅️ رجوع")
