@@ -57,121 +57,115 @@ def register(bot, history):
         bot.send_message(msg.chat.id, "💰 أرسل مبلغ الشحن (بالليرة السورية):", reply_markup=keyboards.recharge_menu())
 
     @bot.message_handler(
-    func=lambda msg: msg.from_user.id in recharge_requests 
-    and "ref" in recharge_requests[msg.from_user.id] 
-    and "amount" not in recharge_requests[msg.from_user.id]
-)
-def get_amount(msg):
-    user_id = msg.from_user.id
-    amount_text = msg.text.strip()
-
-    # فقط أرقام صحيحة بدون أي رموز
-    if not amount_text.isdigit():
-        bot.send_message(
-            msg.chat.id,
-            "❌ يرجى إدخال مبلغ صحيح بالأرقام فقط (بدون أي فواصل أو نقاط أو رموز).",
-            reply_markup=keyboards.recharge_menu()
-        )
-        return
-
-    amount = int(amount_text)
-    data = recharge_requests[user_id]
-    data["amount"] = amount
-
-    # رسالة التأكيد للمستخدم قبل الإرسال للأدمن
-    confirm_text = (
-        f"🔎 **يرجى التأكد من معلومات الشحن:**\n"
-        f"💳 الطريقة: {data['method']}\n"
-        f"🔢 رقم الإشعار: `{data['ref']}`\n"
-        f"💵 المبلغ: {amount:,} ل.س\n\n"
-        f"هل أنت متأكد من إرسال هذا الطلب للإدارة؟"
+        func=lambda msg: msg.from_user.id in recharge_requests 
+        and "ref" in recharge_requests[msg.from_user.id] 
+        and "amount" not in recharge_requests[msg.from_user.id]
     )
+    def get_amount(msg):
+        user_id = msg.from_user.id
+        amount_text = msg.text.strip()
 
-    markup = types.InlineKeyboardMarkup()
-    markup.add(
-        types.InlineKeyboardButton("✅ تأكيد", callback_data="user_confirm_recharge"),
-        types.InlineKeyboardButton("🔁 تعديل", callback_data="user_edit_recharge"),
-        types.InlineKeyboardButton("❌ إلغاء", callback_data="user_cancel_recharge")
-    )
-
-    bot.send_message(
-        msg.chat.id,
-        confirm_text,
-        parse_mode="Markdown",
-        reply_markup=markup
-    )
-
-# التعامل مع أزرار التأكيد والتعديل والإلغاء
-@bot.callback_query_handler(func=lambda call: call.data in ["user_confirm_recharge", "user_edit_recharge", "user_cancel_recharge"])
-def handle_user_recharge_action(call):
-    user_id = call.from_user.id
-
-    if call.data == "user_confirm_recharge":
-        data = recharge_requests.get(user_id)
-        if not data:
-            bot.answer_callback_query(call.id, "لا يوجد طلب قيد المعالجة.")
+        # فقط أرقام صحيحة بدون أي رموز أو نقاط
+        if not amount_text.isdigit():
+            bot.send_message(
+                msg.chat.id,
+                "❌ يرجى إدخال مبلغ صحيح بالأرقام فقط (بدون أي فواصل أو نقاط أو رموز).",
+                reply_markup=keyboards.recharge_menu()
+            )
             return
 
-        caption = (
-            f"💳 طلب شحن محفظة جديد:\n"
-            f"👤 المستخدم: {call.from_user.first_name} (@{call.from_user.username})\n"
-            f"🆔 ID: `{user_id}`\n"
-            f"💵 المبلغ: {data['amount']:,} ل.س\n"
+        amount = int(amount_text)
+        data = recharge_requests[user_id]
+        data["amount"] = amount
+
+        # رسالة التأكيد للمستخدم قبل الإرسال للإدارة
+        confirm_text = (
+            f"🔎 **يرجى التأكد من معلومات الشحن:**\n"
             f"💳 الطريقة: {data['method']}\n"
-            f"🔢 رقم الإشعار: `{data['ref']}`"
+            f"🔢 رقم الإشعار: `{data['ref']}`\n"
+            f"💵 المبلغ: {amount:,} ل.س\n\n"
+            f"هل أنت متأكد من إرسال هذا الطلب للإدارة؟"
         )
 
         markup = types.InlineKeyboardMarkup()
         markup.add(
-            types.InlineKeyboardButton("✅ قبول الشحن", callback_data=f"confirm_add_{user_id}_{data['amount']}"),
-            types.InlineKeyboardButton("❌ رفض", callback_data=f"reject_add_{user_id}")
+            types.InlineKeyboardButton("✅ تأكيد", callback_data="user_confirm_recharge"),
+            types.InlineKeyboardButton("🔁 تعديل", callback_data="user_edit_recharge"),
+            types.InlineKeyboardButton("❌ إلغاء", callback_data="user_cancel_recharge")
         )
-
-        bot.send_photo(
-            ADMIN_MAIN_ID,
-            photo=data["photo"],
-            caption=caption,
-            parse_mode="Markdown",
-            reply_markup=markup
-        )
-        bot.send_message(
-            user_id,
-            "📨 تم إرسال طلبك إلى الإدارة، الرجاء الانتظار.",
-            reply_markup=keyboards.recharge_menu()
-        )
-        recharge_pending.add(user_id)
-        bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
-
-    elif call.data == "user_edit_recharge":
-        # إعادة الخطوات للمستخدم لإدخال المبلغ ورقم الاشعار من جديد
-        if user_id in recharge_requests:
-            recharge_requests[user_id].pop("amount", None)
-            recharge_requests[user_id].pop("ref", None)
-            bot.send_message(
-                user_id,
-                "🔄 يمكنك الآن إدخال رقم الإشعار / رمز العملية من جديد:",
-                reply_markup=keyboards.recharge_menu()
-            )
-        bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
-
-    elif call.data == "user_cancel_recharge":
-        recharge_requests.pop(user_id, None)
-        recharge_pending.discard(user_id)
-        bot.send_message(
-            user_id,
-            "❌ تم إلغاء الطلب، يمكنك البدء من جديد.",
-            reply_markup=keyboards.recharge_menu()
-        )
-        # العودة لاختيار طريقة الشحن من جديد
-        start_recharge_menu(bot, call.message, history=None)
-        bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
 
         bot.send_message(
             msg.chat.id,
-            "📨 تم إرسال طلبك إلى الإدارة، الرجاء الانتظار.",
-            reply_markup=keyboards.recharge_menu()
+            confirm_text,
+            parse_mode="Markdown",
+            reply_markup=markup
         )
-        recharge_pending.add(user_id)
 
-    # لم تعد هذه الدالة مطلوبة إذا كنت تستعمل معالج القبول/الرفض في ملف admin.py
-    # يمكنك حذفها أو تركها معطلة (لا تؤثر)
+    @bot.callback_query_handler(func=lambda call: call.data in ["user_confirm_recharge", "user_edit_recharge", "user_cancel_recharge"])
+    def handle_user_recharge_action(call):
+        user_id = call.from_user.id
+
+        if call.data == "user_confirm_recharge":
+            data = recharge_requests.get(user_id)
+            if not data:
+                bot.answer_callback_query(call.id, "لا يوجد طلب قيد المعالجة.")
+                return
+
+            caption = (
+                f"💳 طلب شحن محفظة جديد:\n"
+                f"👤 المستخدم: {call.from_user.first_name} (@{call.from_user.username})\n"
+                f"🆔 ID: `{user_id}`\n"
+                f"💵 المبلغ: {data['amount']:,} ل.س\n"
+                f"💳 الطريقة: {data['method']}\n"
+                f"🔢 رقم الإشعار: `{data['ref']}`"
+            )
+
+            markup = types.InlineKeyboardMarkup()
+            markup.add(
+                types.InlineKeyboardButton("✅ قبول الشحن", callback_data=f"confirm_add_{user_id}_{data['amount']}"),
+                types.InlineKeyboardButton("❌ رفض", callback_data=f"reject_add_{user_id}")
+            )
+
+            bot.send_photo(
+                ADMIN_MAIN_ID,
+                photo=data["photo"],
+                caption=caption,
+                parse_mode="Markdown",
+                reply_markup=markup
+            )
+            bot.send_message(
+                user_id,
+                "📨 تم إرسال طلبك إلى الإدارة، الرجاء الانتظار.",
+                reply_markup=keyboards.recharge_menu()
+            )
+            recharge_pending.add(user_id)
+            bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+
+        elif call.data == "user_edit_recharge":
+            # إعادة الخطوات للمستخدم لإدخال رقم الإشعار والمبلغ من جديد
+            if user_id in recharge_requests:
+                recharge_requests[user_id].pop("amount", None)
+                recharge_requests[user_id].pop("ref", None)
+                bot.send_message(
+                    user_id,
+                    "🔄 يمكنك الآن إدخال رقم الإشعار / رمز العملية من جديد:",
+                    reply_markup=keyboards.recharge_menu()
+                )
+            bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+
+        elif call.data == "user_cancel_recharge":
+            recharge_requests.pop(user_id, None)
+            recharge_pending.discard(user_id)
+            bot.send_message(
+                user_id,
+                "❌ تم إلغاء الطلب، يمكنك البدء من جديد.",
+                reply_markup=keyboards.recharge_menu()
+            )
+            # العودة لاختيار طريقة الشحن من جديد
+            fake_msg = types.SimpleNamespace()  # اختصار لإرسال start_recharge_menu من دون رسالة حقيقية
+            fake_msg.from_user = types.SimpleNamespace()
+            fake_msg.from_user.id = user_id
+            fake_msg.chat = types.SimpleNamespace()
+            fake_msg.chat.id = user_id
+            start_recharge_menu(bot, fake_msg, history)
+            bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
