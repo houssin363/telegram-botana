@@ -6,24 +6,45 @@ TRANSACTION_TABLE = "transactions"
 
 # ✅ جلب الرصيد
 def get_balance(user_id):
-    response = get_table(TABLE_NAME).select("balance").eq("user_id", user_id).single().execute()
+    response = (
+        get_table(TABLE_NAME)
+        .select("balance")
+        .eq("user_id", user_id)
+        .maybe_single()           # استخدم maybe_single لتجنب الخطأ عند عدم وجود صف
+        .execute()
+    )
     if response.data and "balance" in response.data:
         return response.data["balance"]
     return 0
 
 # ✅ جلب المشتريات
 def get_purchases(user_id):
-    response = get_table(TABLE_NAME).select("purchases").eq("user_id", user_id).single().execute()
+    response = (
+        get_table(TABLE_NAME)
+        .select("purchases")
+        .eq("user_id", user_id)
+        .maybe_single()           # استخدم maybe_single هنا أيضاً
+        .execute()
+    )
     if response.data and "purchases" in response.data:
         return response.data["purchases"]
     return []
 
 # ✅ جلب سجل التحويلات
 def get_transfers(user_id):
-    response = get_table(TRANSACTION_TABLE).select("description", "amount", "timestamp") \
-        .eq("user_id", user_id).order("timestamp", desc=True).limit(10).execute()
+    response = (
+        get_table(TRANSACTION_TABLE)
+        .select("description", "amount", "timestamp")
+        .eq("user_id", user_id)
+        .order("timestamp", desc=True)
+        .limit(10)
+        .execute()
+    )
     if response.data:
-        return [f"{row['description']} ({row['amount']} ل.س) في {row['timestamp'][:19].replace('T', ' ')}" for row in response.data]
+        return [
+            f"{row['description']} ({row['amount']} ل.س) في {row['timestamp'][:19].replace('T', ' ')}"
+            for row in response.data
+        ]
     return []
 
 # ✅ التحقق من وجود رصيد كافٍ
@@ -56,6 +77,7 @@ def record_transaction(user_id, amount, description):
 
 # ✅ تحويل رصيد بين مستخدمين
 def transfer_balance(from_user_id, to_user_id, amount):
+    # تأكد من وجود مبلغ إضافي لرسوم التحويل إن لزم
     if not has_sufficient_balance(from_user_id, amount + 8000):
         return False
 
