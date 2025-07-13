@@ -1,106 +1,129 @@
-from database.db import get_table
 from datetime import datetime
 
-# اسم جدول المستخدمين في supabase (تأكد أنه مطابق تمامًا)
-TABLE_NAME = "houssin363"
+from database.db import get_table
 
-# اسم جدول سجل العمليات (تحويلات أو إيداعات)
-TRANSACTION_TABLE = "transactions"
+# ---------------------------------------------------------------------------
+# جداول Supabase (تأكّد أن أسمائها مطابقة لما هو في لوحة Supabase)
+# ---------------------------------------------------------------------------
+TABLE_NAME = "houssin363"          # جدول حسابات المستخدمين
+TRANSACTION_TABLE = "transactions"  # جدول سجلّ العمليات المالية
 
-# ✅ تسجيل المستخدم تلقائيًا عند أول دخول
-def register_user_if_not_exist(user_id, name="مستخدم"):
-    table = get_table(TABLE_NAME)
-    # تحقق: إذا يوجد مستخدم بنفس user_id في الجدول
-    result = table.select("user_id").eq("user_id", user_id).maybe_single().execute()
-    if not result.data:
-        # إذا غير موجود: أضفه ببيانات افتراضية
-        table.insert({
-            "user_id": user_id,
-            "name": name,
-            "balance": 0,
-            "purchases": [],   # تأكد أن نوع العمود json أو jsonb
-        }).execute()
+# ---------------------------------------------------------------------------
+# Helper functions
+# ---------------------------------------------------------------------------
 
-# ✅ جلب رصيد المستخدم الحالي
-def get_balance(user_id):
+def _select_single(table_name: str, column: str, user_id: int):
+    """إرجاع أول صف مطابق أو قائمة فارغة من Supabase بدون استخدام maybe_single()."""
     response = (
-        get_table(TABLE_NAME)
-        .select("balance")
+        get_table(table_name)
+        .select(column)
         .eq("user_id", user_id)
-        .maybe_single()
+        .limit(1)       # SAFE: لا يطلق استثناء 204
         .execute()
     )
-    if response.data and "balance" in response.data:
-        return response.data["balance"]
-    return 0
+    return response.data[0][column] if response.data else None
 
-# ✅ جلب قائمة المشتريات
-def get_purchases(user_id):
-    response = (
+
+# ---------------------------------------------------------------------------
+# عمليات على حساب المستخدم
+# ---------------------------------------------------------------------------
+
+def register_user_if_not_exist(user_id: int, name: str = "مستخدم") -> None:
+    """إدراج أو تحديث صفّ المستخدم تلقائيًا باستخدام upsert.
+
+    - إذا كان الصف موجودًا (مفتاح "user_id") → يتجاهل الإدراج.
+    - إذا غير موجود → يُنشئ صفًا بقيم افتراضية.
+    """
+    (
         get_table(TABLE_NAME)
-        .select("purchases")
-        .eq("user_id", user_id)
-        .maybe_single()
+        .upsert(
+            {
+                "user_id": user_id,
+                "name": name,
+                "balance": 0,
+                "purchases": [],  # نوع العمود jsonb
+            },
+            on_conflict="user_id",
+        )
         .execute()
     )
-    if response.data and "purchases" in response.data:
-        return response.data["purchases"]
-    return []
 
-# ✅ جلب سجل آخر 10 عمليات مالية
-def get_transfers(user_id):
+
+def get_balance(user_id: int) -> int:
+    """إرجاع رصيد المستخدم أو 0 إن لم يُوجد صف."""
+    balance = _select_single(TABLE_NAME, "balance", user_id)
+    return balance if balance is not None else 0
+
+
+def get_purchases(user_id: int):
+    """إرجاع قائمة المشتريات أو قائمة فارغة."""
+    purchases = _select_single(TABLE_NAME, "purchases", user_id)
+    return purchases if purchases is not None else []
+
+
+# ---------------------------------------------------------------------------
+# سجلّ العمليات المالية
+# ---------------------------------------------------------------------------
+
+def record_transaction(user_id: int, amount: int, description: str) -> None:
+    data = {
+        "user_id": user_id,
+        "amount": amount,
+        "description": description,
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+    get_table(TRANSACTION_TABLE).insert(data).execute()
+
+
+def get_transfers(user_id: int, limit: int = 10):
     response = (
         get_table(TRANSACTION_TABLE)
         .select("description", "amount", "timestamp")
         .eq("user_id", user_id)
         .order("timestamp", desc=True)
-        .limit(10)
+        .limit(limit)
         .execute()
     )
-    if response.data:
-        return [
-            f"{row['description']} ({row['amount']} ل.س) في {row['timestamp'][:19].replace('T', ' ')}"
-            for row in response.data
-        ]
-    return []
+    transfers = []
+    for row in response.data or []:
+        ts = row["timestamp"][:19].replace("T", " ")
+        transfers.append(f"{row['description']} ({row['amount']} ل.س) في {ts}")
+    return transfers
 
-# ✅ تحقق من وجود رصيد كافٍ
-def has_sufficient_balance(user_id, amount):
+
+# ---------------------------------------------------------------------------
+# عمليات الرصيد
+# ---------------------------------------------------------------------------
+
+def _update_balance(user_id: int, delta: int):
+    new_balance = get_balance(user_id) + delta
+    get_table(TABLE_NAME).update({"balance": new_balance}).eq("user_id", user_id).execute()
+
+
+def has_sufficient_balance(user_id: int, amount: int) -> bool:
     return get_balance(user_id) >= amount
 
-# ✅ خصم مبلغ من الرصيد مع تسجيل العملية في جدول التحويلات
-def deduct_balance(user_id, amount):
-    current = get_balance(user_id)
-    new_balance = current - amount
-    get_table(TABLE_NAME).update({"balance": new_balance}).eq("user_id", user_id).execute()
-    record_transaction(user_id, -amount, "خصم تلقائي")
 
-# ✅ إضافة مبلغ للرصيد مع تسجيل العملية في جدول التحويلات
-def add_balance(user_id, amount):
-    current = get_balance(user_id)
-    new_balance = current + amount
-    get_table(TABLE_NAME).update({"balance": new_balance}).eq("user_id", user_id).execute()
-    record_transaction(user_id, amount, "إيداع يدوي")
+def add_balance(user_id: int, amount: int, description: str = "إيداع يدوي") -> None:
+    _update_balance(user_id, amount)
+    record_transaction(user_id, amount, description)
 
-# ✅ تسجيل أي عملية في جدول التحويلات
-def record_transaction(user_id, amount, description):
-    data = {
-        "user_id": user_id,
-        "amount": amount,
-        "description": description,
-        "timestamp": datetime.utcnow().isoformat()
-    }
-    get_table(TRANSACTION_TABLE).insert(data).execute()
 
-# ✅ تحويل رصيد بين مستخدمين (مع رسوم تحويل إن وجدت)
-def transfer_balance(from_user_id, to_user_id, amount):
-    # رسوم التحويل ثابتة (مثلاً 8000)، غيّر الرقم حسب النظام عندك
-    fee = 8000
-    if not has_sufficient_balance(from_user_id, amount + fee):
+def deduct_balance(user_id: int, amount: int, description: str = "خصم تلقائي") -> None:
+    _update_balance(user_id, -amount)
+    record_transaction(user_id, -amount, description)
+
+
+def transfer_balance(from_user_id: int, to_user_id: int, amount: int, fee: int = 8000) -> bool:
+    """تحويل رصيد بين مستخدمين (مع رسوم ثابتة)."""
+    total = amount + fee
+    if not has_sufficient_balance(from_user_id, total):
         return False
 
-    deduct_balance(from_user_id, amount)
-    add_balance(to_user_id, amount)
-    record_transaction(from_user_id, -amount, f"تحويل إلى {to_user_id}")
-    record_transaction(to_user_id, amount, f"تحويل من {from_user_id}")
+    # خصم من المرسِل (المبلغ + الرسوم)
+    deduct_balance(from_user_id, total, description=f"تحويل إلى {to_user_id} (شامل الرسوم)")
+
+    # إضافة للمستقبِل (فقط المبلغ)
+    add_balance(to_user_id, amount, description=f"تحويل من {from_user_id}")
+
     return True
