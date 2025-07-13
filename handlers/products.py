@@ -2,6 +2,7 @@ from telebot import types
 from config import BOT_NAME
 from handlers import keyboards
 from database.models.product import Product
+from services.wallet_service import register_user_if_not_exist  # ✅ الاستيراد الجديد
 
 # منتجات مقسمة حسب التصنيفات
 PRODUCTS = {
@@ -62,6 +63,8 @@ def register(bot, history):
     @bot.message_handler(func=lambda msg: msg.text in ["🛒 المنتجات", "💼 المنتجات"])
     def handle_main_product_menu(msg):
         user_id = msg.from_user.id
+        name = msg.from_user.full_name
+        register_user_if_not_exist(user_id, name)  # ✅
         if user_id in pending_orders:
             bot.send_message(msg.chat.id, "⚠️ لديك طلب قيد الانتظار.")
             return
@@ -70,18 +73,24 @@ def register(bot, history):
 
     @bot.message_handler(func=lambda msg: msg.text == "🎮 شحن ألعاب و تطبيقات")
     def handle_games_menu(msg):
-        history.setdefault(msg.from_user.id, []).append("games_menu")
+        user_id = msg.from_user.id
+        name = msg.from_user.full_name
+        register_user_if_not_exist(user_id, name)  # ✅
+        history.setdefault(user_id, []).append("games_menu")
         show_game_categories(bot, msg)
 
     @bot.message_handler(func=lambda msg: msg.text in [
         "🎯 شحن شدات ببجي العالمية", "🔥 شحن جواهر فري فاير", "🏏 تطبيق جواكر"])
     def game_handler(msg):
+        user_id = msg.from_user.id
+        name = msg.from_user.full_name
+        register_user_if_not_exist(user_id, name)  # ✅
         category_map = {
             "🎯 شحن شدات ببجي العالمية": "PUBG",
             "🔥 شحن جواهر فري فاير": "FreeFire",
             "🏏 تطبيق جواكر": "Jawaker"
         }
         category = category_map[msg.text]
-        history.setdefault(msg.from_user.id, []).append("product_options")
+        history.setdefault(user_id, []).append("product_options")
         show_product_options(bot, msg, category)
-        user_orders[msg.from_user.id] = {"category": category}
+        user_orders[user_id] = {"category": category}
