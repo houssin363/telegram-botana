@@ -1,6 +1,7 @@
 from telebot import types
 from config import ADMIN_MAIN_ID
 from handlers import keyboards  # ✅ الكيبورد الموحد
+from services.wallet_service import register_user_if_not_exist  # ✅ الاستيراد الجديد
 
 recharge_requests = {}
 recharge_pending = set()
@@ -110,6 +111,10 @@ def register(bot, history):
             if not data:
                 bot.answer_callback_query(call.id, "لا يوجد طلب قيد المعالجة.")
                 return
+
+            # ⬅️ هنا ضمان تسجيل المستخدم قبل إرسال الطلب للأدمن
+            name = call.from_user.full_name if hasattr(call.from_user, 'full_name') else call.from_user.first_name
+            register_user_if_not_exist(user_id, name)
 
             caption = (
                 f"💳 طلب شحن محفظة جديد:\n"
