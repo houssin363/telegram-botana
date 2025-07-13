@@ -1,7 +1,7 @@
 from telebot import types
 from config import ADMIN_MAIN_ID
 from handlers import keyboards  # ✅ الكيبورد الموحد
-from services.wallet_service import register_user_if_not_exist  # ✅ الاستيراد الجديد
+from services.wallet_service import register_user_if_not_exist, add_balance
 
 recharge_requests = {}
 recharge_pending = set()
@@ -174,3 +174,48 @@ def register(bot, history):
             fake_msg.chat.id = user_id
             start_recharge_menu(bot, fake_msg, history)
             bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+
+    # ===================== هاندلر الأدمن لقبول/رفض الشحن =====================
+
+    @bot.callback_query_handler(func=lambda c: c.data.startswith("confirm_add_") or c.data.startswith("reject_add_"))
+    def admin_recharge_action(c):
+        # تأكد أن الرسالة في دردشة الأدمن الرئيسية
+        if c.message.chat.id != ADMIN_MAIN_ID:
+            bot.answer_callback_query(c.id, "غير مصرح.")
+            return
+
+        try:
+            if c.data.startswith("confirm_add_"):
+                _, _, uid_str, amt_str = c.data.split("_", 3)
+                uid, amt = int(uid_str), int(amt_str)
+                add_balance(uid, amt, "شحن محفظة")
+
+                bot.edit_message_caption(
+                    chat_id=c.message.chat.id,
+                    message_id=c.message.message_id,
+                    caption=f"{c.message.caption}
+
+✅ *تم الشحن*",
+                    parse_mode="Markdown",
+                )
+                bot.send_message(uid, f"🎉 تم شحن محفظتك بـ {amt:,} ل.س بنجاح!")
+                bot.answer_callback_query(c.id, "✅ تم شحن المحفظة.")
+            else:  # reject
+                _, _, uid_str = c.data.split("_", 2)
+                uid = int(uid_str)
+                bot.edit_message_caption(
+                    chat_id=c.message.chat.id,
+                    message_id=c.message.message_id,
+                    caption=f"{c.message.caption}
+
+❌ *تم الرفض*",
+                    parse_mode="Markdown",
+                )
+                bot.send_message(uid, "⚠️ تم رفض طلب شحن محفظتك.")
+                bot.answer_callback_query(c.id, "❌ تم الرفض.")
+
+            recharge_pending.discard(uid)
+            recharge_requests.pop(uid, None)
+        except Exception as e:
+            bot.answer_callback_query(c.id, "خطأ غير متوقع.")
+            raise
