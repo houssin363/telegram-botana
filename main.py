@@ -1,6 +1,7 @@
 import os
 import telebot
 from config import API_TOKEN
+bot.delete_webhook(drop_pending_updates=True)
 
 # استيراد جميع الهاندلرز
 from handlers import (
