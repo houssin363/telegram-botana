@@ -1,7 +1,8 @@
 from telebot import types
 from datetime import datetime
 from config import ADMINS, ADMIN_MAIN_ID
-from handlers.wallet import update_balance, register_user_if_not_exist
+from handlers.wallet import register_user_if_not_exist
+from services.wallet_service import add_balance, deduct_balance   # ✅ استيراد دوال الرصيد الصحيحة
 import json
 import os
 
@@ -35,9 +36,8 @@ def register(bot, history):
             amount = float(data_parts[3])
 
             register_user_if_not_exist(user_id)
-            update_balance(user_id, amount)
+            add_balance(user_id, int(amount))  # ✅ استخدم add_balance لجمع الرصيد
 
-            
             bot.send_message(user_id, f"✅ تم إضافة {int(amount):,} ل.س إلى محفظتك بنجاح.")
             bot.answer_callback_query(call.id, "✅ تمت الموافقة")
             bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
@@ -130,7 +130,7 @@ def register(bot, history):
         save_code_operations(data)
 
         register_user_if_not_exist(user_id)
-        update_balance(user_id, amount)
+        add_balance(user_id, amount)  # ✅ استخدم add_balance
 
         bot.send_message(msg.chat.id, f"✅ تم تحويل {amount:,} ل.س إلى محفظتك عبر وكيل.")
         bot.send_message(ADMIN_MAIN_ID, f"✅ تم شحن {amount:,} ل.س للمستخدم `{user_id}` عبر كود `{code}`", parse_mode="Markdown")
