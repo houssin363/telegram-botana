@@ -1,21 +1,16 @@
-
 from telebot import types
+from handlers.syr_units import SYRIATEL_PRODUCTS
 
 def main_menu():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
         types.KeyboardButton("🛒 المنتجات"),
-        types.KeyboardButton("💳 إعادة الشحن"),
+        types.KeyboardButton("💳 شحن محفظتي"),
         types.KeyboardButton("💰 محفظتي"),
         types.KeyboardButton("🛠️ الدعم الفني"),
         types.KeyboardButton("🔄 ابدأ من جديد"),
         types.KeyboardButton("🌐 صفحتنا")
     )
-    return markup
-
-def links_menu():
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    markup.add(types.KeyboardButton("⬅️ رجوع"))
     return markup
 
 def products_menu():
@@ -25,20 +20,7 @@ def products_menu():
         types.KeyboardButton("💵 شراء رصيد كاش"),
         types.KeyboardButton("💳 تحويل رصيد سوري"),
         types.KeyboardButton("🌐 دفع مزودات الإنترنت ADSL"),
-        types.KeyboardButton("🎓 دفع رسوم جامعية فصلية"),
-        types.KeyboardButton("📤 تحويل رصيد"),
-        types.KeyboardButton("🧧 تحويل كاش من محفظتك"),
-        types.KeyboardButton("🎨 خدمات تصميم وإدارة سوشيال ميديا"),
-        types.KeyboardButton("📦 طلب جملة للتجار"),
-        types.KeyboardButton("⬅️ رجوع")
-    )
-    return markup
-
-def syrian_balance_menu():
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    markup.add(
-        types.KeyboardButton("📶 رصيد سيرياتيل وحدات"),
-        types.KeyboardButton("📶 رصيد أم تي أن وحدات"),
+        types.KeyboardButton("🎓 دفع رسوم جامعية"),
         types.KeyboardButton("⬅️ رجوع")
     )
     return markup
@@ -53,14 +35,64 @@ def game_categories():
     )
     return markup
 
-def cash_transfer_menu():
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+def recharge_menu():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
     markup.add(
-        types.KeyboardButton("سيرياتيل كاش"),
-        types.KeyboardButton("أم تي إن كاش"),
-        types.KeyboardButton("شام كاش"),
+        types.KeyboardButton("📲 سيرياتيل كاش"),
+        types.KeyboardButton("📲 أم تي إن كاش"),
+        types.KeyboardButton("📲 شام كاش"),
+        types.KeyboardButton("💳 Payeer"),
         types.KeyboardButton("⬅️ رجوع"),
         types.KeyboardButton("🔄 ابدأ من جديد")
+    )
+    return markup
+
+# Same layout as recharge_menu (for going back into the cash-transfer flow)
+def cash_transfer_menu():
+    return recharge_menu()
+
+def syrian_balance_menu():
+    """
+    يُعيد لوحة الأزرار لجميع منتجات سيرياتيل (الوحدات)،
+    مع زر للعودة إلى القائمة السابقة.
+    """
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    # أزرار لكل منتج سيرياتيل بحسب اسمه
+    buttons = [types.KeyboardButton(p.name) for p in SYRIATEL_PRODUCTS]
+    buttons.append(types.KeyboardButton("⬅️ رجوع"))
+    markup.add(*buttons)
+    return markup
+
+def wallet_menu():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(
+        types.KeyboardButton("💰 محفظتي"),
+        types.KeyboardButton("🛍️ مشترياتي"),
+        types.KeyboardButton("📑 سجل التحويلات"),
+        types.KeyboardButton("🔁 تحويل من محفظتك إلى محفظة عميل آخر"),
+        types.KeyboardButton("⬅️ رجوع"),
+        types.KeyboardButton("🔄 ابدأ من جديد")
+    )
+    return markup
+
+def support_menu():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup.add(
+        types.KeyboardButton("🧑‍💼 تواصل مع الادمن"),
+        types.KeyboardButton("⬅️ رجوع")
+    )
+    return markup
+
+def hide_keyboard():
+    return types.ReplyKeyboardRemove()
+
+def links_menu():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup.add(
+        types.KeyboardButton("🌐 موقعنا"),
+        types.KeyboardButton("📘 فيس بوك"),
+        types.KeyboardButton("📸 إنستغرام"),
+        types.KeyboardButton("⬅️ رجوع")
     )
     return markup
 
