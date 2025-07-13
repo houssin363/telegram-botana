@@ -1,17 +1,19 @@
 from telebot import types
-
 from handlers import keyboards
 from config import BOT_NAME, FORCE_SUB_CHANNEL_USERNAME
+from services.wallet_service import register_user_if_not_exist  # <-- الاستيراد المهم
 
 def register(bot, user_history):
     @bot.message_handler(commands=['start'])
     def send_welcome(message):
         user_id = message.from_user.id
+        # تحقق من الاشتراك
         if not check_subscription(bot, user_id):
             markup = types.InlineKeyboardMarkup()
             markup.add(
                 types.InlineKeyboardButton("🔔 اشترك الآن في القناة", url=f"https://t.me/{FORCE_SUB_CHANNEL_USERNAME[1:]}")
             )
+            # فقط زر الاشتراك بدون أي أزرار إضافية
             bot.send_message(
                 message.chat.id,
                 f"⚠️ للاستخدام الكامل لبوت {BOT_NAME}\nيرجى الاشتراك بالقناة أولاً.",
@@ -19,8 +21,29 @@ def register(bot, user_history):
             )
             return
 
-        bot.send_message(message.chat.id, WELCOME_MESSAGE, parse_mode="Markdown", reply_markup=keyboards.main_menu())
+        # بعد الاشتراك، أظهر زر الدخول للقائمة الرئيسية
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        markup.add("🚀 انتقل إلى القائمة الرئيسية")
+        bot.send_message(
+            message.chat.id,
+            WELCOME_MESSAGE,
+            parse_mode="Markdown",
+            reply_markup=markup
+        )
         user_history[user_id] = []
+
+    @bot.message_handler(func=lambda msg: msg.text == "🚀 انتقل إلى القائمة الرئيسية")
+    def enter_main_menu(msg):
+        user_id = msg.from_user.id
+        # سجل العميل إذا لم يكن مسجلاً
+        name = msg.from_user.full_name if hasattr(msg.from_user, "full_name") else msg.from_user.first_name
+        register_user_if_not_exist(user_id, name)
+        # أظهر القائمة الرئيسية فقط
+        bot.send_message(
+            msg.chat.id,
+            "✨ تم تسجيلك بنجاح! هذه القائمة الرئيسية.",
+            reply_markup=keyboards.main_menu()
+        )
 
     @bot.message_handler(func=lambda msg: msg.text == "🔄 ابدأ من جديد")
     def restart_user(msg):
@@ -67,5 +90,5 @@ WELCOME_MESSAGE = (
     "2️⃣ *سيتم حذف محفظتك* إذا لم تقم بأي عملية شراء خلال 40 يومًا.\n"
     "3️⃣ *لا تراسل الإدارة* إلا في حالة الطوارئ!\n\n"
     "🔔 *هل أنت جاهز؟* لأننا على استعداد تام لتلبية احتياجاتك!\n"
-    "👇 اختر ما يناسبك من القائمة التالية وابدأ مغامرتك التسويقية الآن"
+    "👇 اضغط على زر 🚀 للمتابعة."
 )
