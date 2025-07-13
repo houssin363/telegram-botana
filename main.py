@@ -1,9 +1,16 @@
 import os
 import telebot
 from config import API_TOKEN
+
+# ---------------------------------------------------------
+# 1) إنشاء كائن البوت ثم حذف أي Webhook سابق لتجنّب خطأ 409
+# ---------------------------------------------------------
+bot = telebot.TeleBot(API_TOKEN)
 bot.delete_webhook(drop_pending_updates=True)
 
-# استيراد جميع الهاندلرز
+# ---------------------------------------------------------
+# 2) استيراد جميع الهاندلرز بعد تهيئة البوت
+# ---------------------------------------------------------
 from handlers import (
     start,
     wallet,
@@ -14,7 +21,7 @@ from handlers import (
     products,
     media_services,
     wholesale,
-    syr_units       # أضفنا هذا السطر
+    syr_units,  # تسجيل وحدات سورية
 )
 from handlers.keyboards import (
     main_menu,
@@ -26,15 +33,17 @@ from handlers.keyboards import (
     wallet_menu,
     support_menu,
     links_menu,
-    media_services_menu
+    media_services_menu,
 )
 
-bot = telebot.TeleBot(API_TOKEN)
+# ---------------------------------------------------------
+# 3) حالة المستخدم
+# ---------------------------------------------------------
+user_state: dict[int, str] = {}
 
-# 🧠 تتبع حالة المستخدم
-user_state = {}
-
-# تسجيل الهاندلرز مع تمرير user_state للتتبع
+# ---------------------------------------------------------
+# 4) تسجيل الهاندلرز مع تمرير user_state للتتبع
+# ---------------------------------------------------------
 start.register(bot, user_state)
 wallet.register(bot, user_state)
 support.register(bot, user_state)
@@ -44,9 +53,11 @@ cash_transfer.register(bot, user_state)
 products.register(bot, user_state)
 media_services.register(bot, user_state)
 wholesale.register(bot, user_state)
-syr_units.register(bot, user_state)    # أضفنا هذه السطر لتسجيل syr_units
+syr_units.register(bot, user_state)
 
-# ⬅️ زر الرجوع الذكي
+# ---------------------------------------------------------
+# 5) زر الرجوع الذكي
+# ---------------------------------------------------------
 @bot.message_handler(func=lambda msg: msg.text == "⬅️ رجوع")
 def handle_back(msg):
     user_id = msg.from_user.id
@@ -70,6 +81,13 @@ def handle_back(msg):
         bot.send_message(msg.chat.id, "⬅️ عدت إلى البداية.", reply_markup=main_menu())
         user_state[user_id] = "main_menu"
 
-print("🤖 البوت يعمل الآن...")
+# ---------------------------------------------------------
+# 6) تشغيل البوت
+# ---------------------------------------------------------
+print("🤖 البوت يعمل الآن…")
 
-bot.infinity_polling()
+bot.infinity_polling(
+    none_stop=True,
+    skip_pending=True,
+    long_polling_timeout=40,
+)
