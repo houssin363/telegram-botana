@@ -68,8 +68,8 @@ def show_transfers(bot, message, history=None):
 def register(bot, history):
 
     @bot.message_handler(func=lambda msg: msg.text == "💰 محفظتي")
-    def handle_wallet(msg):
-        show_wallet(bot, msg, history)
+def handle_wallet(msg):
+    show_wallet(bot, msg, history)
 
     @bot.message_handler(func=lambda msg: msg.text == "🛍️ مشترياتي")
     def handle_purchases(msg):
