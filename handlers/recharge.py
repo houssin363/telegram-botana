@@ -69,11 +69,10 @@ def register(bot, history):
                 f"🔢 رقم الإشعار: `{data['ref']}`"
             )
 
-            markup = types.InlineKeyboardMarkup()
             markup.add(
-                types.InlineKeyboardButton("✅ قبول الشحن", callback_data=f"acceptrecharge_{user_id}"),
-                types.InlineKeyboardButton("❌ رفض", callback_data=f"rejectrecharge_{user_id}")
-            )
+    types.InlineKeyboardButton("✅ قبول الشحن", callback_data=f"confirm_add_{user_id}_{amount}"),
+    types.InlineKeyboardButton("❌ رفض", callback_data=f"reject_add_{user_id}")
+)
 
             bot.send_photo(
                 ADMIN_MAIN_ID,
