@@ -4,6 +4,20 @@ from datetime import datetime
 TABLE_NAME = "houssin363"
 TRANSACTION_TABLE = "transactions"
 
+# ✅ تسجيل المستخدم عند أول دخول (الإضافة التلقائية للعملاء الجدد)
+def register_user_if_not_exist(user_id, name="مستخدم جديد"):
+    table = get_table(TABLE_NAME)
+    # تحقق إذا كان المستخدم موجود أصلاً
+    result = table.select("user_id").eq("user_id", user_id).maybe_single().execute()
+    if not result.data:
+        # إذا لم يوجد، أضفه ببيانات أولية
+        table.insert({
+            "user_id": user_id,
+            "name": name,
+            "balance": 0,
+            "purchases": "[]"
+        }).execute()
+
 # ✅ جلب الرصيد
 def get_balance(user_id):
     response = (
