@@ -7,7 +7,7 @@ TRANSACTION_TABLE = "transactions"
 # ✅ تسجيل المستخدم عند أول دخول (الإضافة التلقائية للعملاء الجدد)
 def register_user_if_not_exist(user_id, name="مستخدم جديد"):
     table = get_table(TABLE_NAME)
-    # تحقق إذا كان المستخدم موجود أصلاً
+    # تحقق إذا كان المستخدم موجود أصلاً في الجدول
     result = table.select("user_id").eq("user_id", user_id).maybe_single().execute()
     if not result.data:
         # إذا لم يوجد، أضفه ببيانات أولية
@@ -24,7 +24,7 @@ def get_balance(user_id):
         get_table(TABLE_NAME)
         .select("balance")
         .eq("user_id", user_id)
-        .maybe_single()           # استخدم maybe_single لتجنب الخطأ عند عدم وجود صف
+        .maybe_single()
         .execute()
     )
     if response.data and "balance" in response.data:
@@ -37,7 +37,7 @@ def get_purchases(user_id):
         get_table(TABLE_NAME)
         .select("purchases")
         .eq("user_id", user_id)
-        .maybe_single()           # استخدم maybe_single هنا أيضاً
+        .maybe_single()
         .execute()
     )
     if response.data and "purchases" in response.data:
@@ -79,7 +79,7 @@ def add_balance(user_id, amount):
     get_table(TABLE_NAME).update({"balance": new_balance}).eq("user_id", user_id).execute()
     record_transaction(user_id, amount, "إيداع يدوي")
 
-# ✅ تسجيل العمليات
+# ✅ تسجيل العمليات (لجدول التحويلات)
 def record_transaction(user_id, amount, description):
     data = {
         "user_id": user_id,
