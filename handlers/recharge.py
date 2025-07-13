@@ -1,10 +1,10 @@
 from telebot import types
 from config import ADMIN_MAIN_ID
 from handlers import keyboards  # ✅ الكيبورد الموحد
-from services.wallet_service import register_user_if_not_exist  # ✅ الاستيراد الجديد
+from services.wallet_service import register_user_if_not_exist, add_balance
 
-recharge_requests = {}
-recharge_pending = set()
+recharge_requests: dict[int, dict] = {}
+recharge_pending: set[int] = set()
 
 # ✅ عرض قائمة طرق الشحن
 def start_recharge_menu(bot, message, history=None):
@@ -16,8 +16,10 @@ def start_recharge_menu(bot, message, history=None):
         reply_markup=keyboards.recharge_menu()
     )
 
+
 def register(bot, history):
 
+    # -------------------------- المستخدم ---------------------------
     @bot.message_handler(func=lambda msg: msg.text == "💳 شحن محفظتي")
     def open_recharge(msg):
         start_recharge_menu(bot, msg, history)
@@ -49,24 +51,23 @@ def register(bot, history):
         bot.send_message(msg.chat.id, "🔢 أرسل رقم الإشعار / رمز العملية:", reply_markup=keyboards.recharge_menu())
 
     @bot.message_handler(
-        func=lambda msg: msg.from_user.id in recharge_requests 
-        and "photo" in recharge_requests[msg.from_user.id] 
-        and "ref" not in recharge_requests[msg.from_user.id]
+        func=lambda msg: msg.from_user.id in recharge_requests \
+            and "photo" in recharge_requests[msg.from_user.id] \
+            and "ref" not in recharge_requests[msg.from_user.id]
     )
     def get_reference(msg):
-        recharge_requests[msg.from_user.id]["ref"] = msg.text
+        recharge_requests[msg.from_user.id]["ref"] = msg.text.strip()
         bot.send_message(msg.chat.id, "💰 أرسل مبلغ الشحن (بالليرة السورية):", reply_markup=keyboards.recharge_menu())
 
     @bot.message_handler(
-        func=lambda msg: msg.from_user.id in recharge_requests 
-        and "ref" in recharge_requests[msg.from_user.id] 
-        and "amount" not in recharge_requests[msg.from_user.id]
+        func=lambda msg: msg.from_user.id in recharge_requests \
+            and "ref" in recharge_requests[msg.from_user.id] \
+            and "amount" not in recharge_requests[msg.from_user.id]
     )
     def get_amount(msg):
         user_id = msg.from_user.id
         amount_text = msg.text.strip()
 
-        # فقط أرقام صحيحة بدون أي رموز أو نقاط
         if not amount_text.isdigit():
             bot.send_message(
                 msg.chat.id,
@@ -79,7 +80,6 @@ def register(bot, history):
         data = recharge_requests[user_id]
         data["amount"] = amount
 
-        # رسالة التأكيد للمستخدم قبل الإرسال للإدارة
         confirm_text = (
             f"🔎 **يرجى التأكد من معلومات الشحن:**\n"
             f"💳 الطريقة: {data['method']}\n"
@@ -102,7 +102,9 @@ def register(bot, history):
             reply_markup=markup
         )
 
-    @bot.callback_query_handler(func=lambda call: call.data in ["user_confirm_recharge", "user_edit_recharge", "user_cancel_recharge"])
+    @bot.callback_query_handler(func=lambda call: call.data in [
+        "user_confirm_recharge", "user_edit_recharge", "user_cancel_recharge"
+    ])
     def handle_user_recharge_action(call):
         user_id = call.from_user.id
 
@@ -112,7 +114,6 @@ def register(bot, history):
                 bot.answer_callback_query(call.id, "لا يوجد طلب قيد المعالجة.")
                 return
 
-            # ⬅️ هنا ضمان تسجيل المستخدم قبل إرسال الطلب للأدمن
             name = call.from_user.full_name if hasattr(call.from_user, 'full_name') else call.from_user.first_name
             register_user_if_not_exist(user_id, name)
 
@@ -147,7 +148,6 @@ def register(bot, history):
             bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
 
         elif call.data == "user_edit_recharge":
-            # إعادة الخطوات للمستخدم لإدخال رقم الإشعار والمبلغ من جديد
             if user_id in recharge_requests:
                 recharge_requests[user_id].pop("amount", None)
                 recharge_requests[user_id].pop("ref", None)
@@ -166,11 +166,66 @@ def register(bot, history):
                 "❌ تم إلغاء الطلب، يمكنك البدء من جديد.",
                 reply_markup=keyboards.recharge_menu()
             )
-            # العودة لاختيار طريقة الشحن من جديد
-            fake_msg = types.SimpleNamespace()  # اختصار لإرسال start_recharge_menu من دون رسالة حقيقية
+            fake_msg = types.SimpleNamespace()
             fake_msg.from_user = types.SimpleNamespace()
             fake_msg.from_user.id = user_id
             fake_msg.chat = types.SimpleNamespace()
             fake_msg.chat.id = user_id
             start_recharge_menu(bot, fake_msg, history)
             bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+
+    # -------------------------- الأدمن ---------------------------
+
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith(("confirm_add_", "reject_add_"))
+    )
+    def handle_admin_recharge_action(call):
+        try:
+            if call.message.chat.id != ADMIN_MAIN_ID:
+                bot.answer_callback_query(call.id, "غير مصرح.")
+                return
+
+            if call.data.startswith("confirm_add_"):
+                _, _, user_id_str, amount_str = call.data.split("_", 3)
+                target_id = int(user_id_str)
+                amount = int(amount_str)
+
+                add_balance(target_id, amount, description="شحن محفظة")
+                recharge_pending.discard(target_id)
+                recharge_requests.pop(target_id, None)
+
+                bot.edit_message_caption(
+                    chat_id=call.message.chat.id,
+                    message_id=call.message.message_id,
+                    caption=f"{call.message.caption}\n\n✅ *تم الشحن*",
+                    parse_mode="Markdown",
+                )
+                bot.answer_callback_query(call.id, "✅ تم شحن المحفظة.")
+                bot.send_message(
+                    target_id,
+                    f"🎉 تم شحن محفظتك بـ {amount:,} ل.س بنجاح!"
+                )
+            else:  # reject_add_
+                _, _, user_id_str = call.data.split("_", 2)
+                target_id = int(user_id_str)
+
+                recharge_pending.discard(target_id)
+                recharge_requests.pop(target_id, None)
+
+                bot.edit_message_caption(
+                    chat_id=call.message.chat.id,
+                    message_id=call.message.message_id,
+                    caption=f"{call.message.caption}\n\n❌ *تم الرفض*",
+                    parse_mode="Markdown",
+                )
+                bot.answer                bot.answer_callback_query(call.id, "❌ تم رفض الطلب.")
+                bot.send_message(
+                    target_id,
+                    "⚠️ تم رفض طلب شحن محفظتك، تواصل مع الإدارة إذا كان هناك خطأ."
+                )
+
+            # نهاية try
+        except Exception as e:
+            bot.answer_callback_query(call.id, "حدث خطأ غير متوقع.")
+            raise
+
