@@ -195,20 +195,8 @@ def register(bot, history):
                     message_id=c.message.message_id,
                     caption=f"{c.message.caption}
 
-✅ *تم الشحن*",
-                    parse_mode="Markdown",
-                )
-                bot.send_message(uid, f"🎉 تم شحن محفظتك بـ {amt:,} ل.س بنجاح!")
-                bot.answer_callback_query(c.id, "✅ تم شحن المحفظة.")
-            else:  # reject
-                _, _, uid_str = c.data.split("_", 2)
-                uid = int(uid_str)
-                bot.edit_message_caption(
-                    chat_id=c.message.chat.id,
-                    message_id=c.message.message_id,
-                    caption=f"{c.message.caption}
-
 ❌ *تم الرفض*",
+
                     parse_mode="Markdown",
                 )
                 bot.send_message(uid, "⚠️ تم رفض طلب شحن محفظتك.")
