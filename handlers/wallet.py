@@ -6,16 +6,13 @@ from services.wallet_service import (
     has_sufficient_balance, transfer_balance, get_table
 )
 
-# ✅ اختبار اتصال Supabase (مؤقت)
 print("🔄 [DEBUG] اتصال Supabase ناجح. الرصيد:", get_balance(6935846121))
 
 transfer_steps = {}
 
-# ✅ دالة تحديث الرصيد
 def update_balance(user_id, new_balance):
     get_table("houssin363").update({"balance": new_balance}).eq("user_id", user_id).execute()
 
-# ✅ دالة تسجيل المستخدم عند أول دخول
 def register_user_if_not_exist(user_id, name="مستخدم جديد"):
     if get_balance(user_id) == 0:
         get_table("houssin363").insert({
@@ -25,7 +22,6 @@ def register_user_if_not_exist(user_id, name="مستخدم جديد"):
             "purchases": "[]"
         }).execute()
 
-# ✅ عرض المحفظة
 def show_wallet(bot, message, history=None):
     user_id = message.from_user.id
     balance = get_balance(user_id)
@@ -36,7 +32,6 @@ def show_wallet(bot, message, history=None):
     text = f"🧾 رقم حسابك: `{user_id}`\n💰 رصيدك الحالي: {balance:,} ل.س"
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=keyboards.wallet_menu())
 
-# ✅ عرض المشتريات
 def show_purchases(bot, message, history=None):
     user_id = message.from_user.id
     purchases = get_purchases(user_id)
@@ -50,7 +45,6 @@ def show_purchases(bot, message, history=None):
         text = "🛍️ مشترياتك المقبولة:\n" + "\n".join(purchases)
         bot.send_message(message.chat.id, text, reply_markup=keyboards.wallet_menu())
 
-# ✅ عرض سجل التحويلات
 def show_transfers(bot, message, history=None):
     user_id = message.from_user.id
     transfers = get_transfers(user_id)
@@ -64,10 +58,6 @@ def show_transfers(bot, message, history=None):
         text = "📑 سجل التحويلات:\n" + "\n".join(transfers)
         bot.send_message(message.chat.id, text, reply_markup=keyboards.wallet_menu())
 
-# ✅ تسجيل الأوامر
-def register(bot, history):
-
-    # ✅ تسجيل الأوامر
 def register(bot, history):
 
     @bot.message_handler(func=lambda msg: msg.text == "💰 محفظتي")
