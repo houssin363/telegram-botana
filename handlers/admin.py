@@ -37,7 +37,8 @@ def register(bot, history):
             register_user_if_not_exist(user_id)
             update_balance(user_id, amount)
 
-            bot.send_message(user_id, f"✅ تم إضافة {amount:,} ل.س إلى محفظتك بنجاح.")
+            
+            bot.send_message(user_id, f"✅ تم إضافة {int(amount):,} ل.س إلى محفظتك بنجاح.")
             bot.answer_callback_query(call.id, "✅ تمت الموافقة")
             bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
             bot.send_message(call.message.chat.id, f"✅ تم تأكيد العملية وإضافة الرصيد لليوزر `{user_id}`", parse_mode="Markdown")
