@@ -63,7 +63,7 @@ def wallet_menu():
         types.KeyboardButton("💰 محفظتي"),
         types.KeyboardButton("🛍️ مشترياتي"),
         types.KeyboardButton("📑 سجل التحويلات"),
-        types.KeyboardButton("🔁 تحويل رصيد"),
+        types.KeyboardButton("🔁 تحويل من محفظتك إلى محفظة عميل آخر"),
         types.KeyboardButton("⬅️ رجوع"),
         types.KeyboardButton("🔄 ابدأ من جديد")
     )
