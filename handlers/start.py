@@ -13,7 +13,6 @@ def register(bot, user_history):
             markup.add(
                 types.InlineKeyboardButton("🔔 اشترك الآن في القناة", url=f"https://t.me/{FORCE_SUB_CHANNEL_USERNAME[1:]}")
             )
-            # فقط زر الاشتراك بدون أي أزرار إضافية
             bot.send_message(
                 message.chat.id,
                 f"⚠️ للاستخدام الكامل لبوت {BOT_NAME}\nيرجى الاشتراك بالقناة أولاً.",
@@ -35,10 +34,8 @@ def register(bot, user_history):
     @bot.message_handler(func=lambda msg: msg.text == "🚀 انتقل إلى القائمة الرئيسية")
     def enter_main_menu(msg):
         user_id = msg.from_user.id
-        # سجل العميل إذا لم يكن مسجلاً
         name = msg.from_user.full_name if hasattr(msg.from_user, "full_name") else msg.from_user.first_name
         register_user_if_not_exist(user_id, name)
-        # أظهر القائمة الرئيسية فقط
         bot.send_message(
             msg.chat.id,
             "✨ تم تسجيلك بنجاح! هذه القائمة الرئيسية.",
@@ -66,7 +63,6 @@ def register(bot, user_history):
     def go_back(msg):
         bot.send_message(msg.chat.id, "⬅️ تم الرجوع للقائمة الرئيسية", reply_markup=keyboards.main_menu())
 
-# دالة التحقق من الاشتراك في القناة
 def check_subscription(bot, user_id):
     try:
         status = bot.get_chat_member(FORCE_SUB_CHANNEL_USERNAME, user_id).status
@@ -74,7 +70,6 @@ def check_subscription(bot, user_id):
     except:
         return False
 
-# رسالة الترحيب
 WELCOME_MESSAGE = (
     f"مرحبًا بك في {BOT_NAME}, وجهتك الأولى للتسوق الإلكتروني!\n\n"
     "🚀 نحن هنا نقدم لك تجربة تسوق لا مثيل لها:\n"
