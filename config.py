@@ -1,7 +1,7 @@
 import os
 
 # ✅ إعدادات البوت الأساسية
-API_TOKEN = "7936418161:AAHY1OM3g898oJFqq1KuL16wNJ4FEH0DUHA"
+API_TOKEN = "7936418161:AAGNZEMIGZEmPfYlCGQbO_vM9oQbQUVSiT4"
 BOT_USERNAME = "@my_fast_shop_bot"
 BOT_NAME = "المتجر العالمي"
 BOT_ID = 7936418161
