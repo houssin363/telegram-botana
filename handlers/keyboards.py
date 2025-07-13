@@ -4,7 +4,7 @@ from telebot import types
 def main_menu():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
-        types.KeyboardButton("🛍️ المنتجات"),
+        types.KeyboardButton("🛒 المنتجات")
         types.KeyboardButton("💳 إعادة الشحن"),
         types.KeyboardButton("💰 محفظتي"),
         types.KeyboardButton("📤 تحويل رصيد"),
