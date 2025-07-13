@@ -1,26 +1,40 @@
 from telebot import types
 from handlers import keyboards
 from config import BOT_NAME, FORCE_SUB_CHANNEL_USERNAME
-from services.wallet_service import register_user_if_not_exist  # <-- الاستيراد المهم
+from services.wallet_service import register_user_if_not_exist  # هذا مهم
 
 def register(bot, user_history):
     @bot.message_handler(commands=['start'])
     def send_welcome(message):
         user_id = message.from_user.id
-        # تحقق من الاشتراك
-        if not check_subscription(bot, user_id):
-            markup = types.InlineKeyboardMarkup()
-            markup.add(
-                types.InlineKeyboardButton("🔔 اشترك الآن في القناة", url=f"https://t.me/{FORCE_SUB_CHANNEL_USERNAME[1:]}")
-            )
-            bot.send_message(
-                message.chat.id,
-                f"⚠️ للاستخدام الكامل لبوت {BOT_NAME}\nيرجى الاشتراك بالقناة أولاً.",
-                reply_markup=markup
-            )
-            return
+        # التحقق من الاشتراك إذا كنت تريد ذلك، يمكنك تعطيله إن لم يكن ضروريًا
+        if FORCE_SUB_CHANNEL_USERNAME:
+            try:
+                status = bot.get_chat_member(FORCE_SUB_CHANNEL_USERNAME, user_id).status
+                if status not in ["member", "creator", "administrator"]:
+                    markup = types.InlineKeyboardMarkup()
+                    markup.add(
+                        types.InlineKeyboardButton("🔔 اشترك الآن في القناة", url=f"https://t.me/{FORCE_SUB_CHANNEL_USERNAME[1:]}")
+                    )
+                    bot.send_message(
+                        message.chat.id,
+                        f"⚠️ للاستخدام الكامل لبوت {BOT_NAME}\nيرجى الاشتراك بالقناة أولاً.",
+                        reply_markup=markup
+                    )
+                    return
+            except:
+                markup = types.InlineKeyboardMarkup()
+                markup.add(
+                    types.InlineKeyboardButton("🔔 اشترك الآن في القناة", url=f"https://t.me/{FORCE_SUB_CHANNEL_USERNAME[1:]}")
+                )
+                bot.send_message(
+                    message.chat.id,
+                    f"⚠️ للاستخدام الكامل لبوت {BOT_NAME}\nيرجى الاشتراك بالقناة أولاً.",
+                    reply_markup=markup
+                )
+                return
 
-        # بعد الاشتراك، أظهر زر الدخول للقائمة الرئيسية باسم جديد
+        # بعد الاشتراك أو إذا لم يكن هناك شرط اشتراك
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         markup.add("🚀 ابدأ بالتسوق العالمي")
         bot.send_message(
@@ -35,6 +49,7 @@ def register(bot, user_history):
     def enter_main_menu(msg):
         user_id = msg.from_user.id
         name = msg.from_user.full_name if hasattr(msg.from_user, "full_name") else msg.from_user.first_name
+        # تسجيل المستخدم تلقائيًا إذا لم يكن مسجلاً
         register_user_if_not_exist(user_id, name)
         bot.send_message(
             msg.chat.id,
@@ -62,13 +77,6 @@ def register(bot, user_history):
     @bot.message_handler(func=lambda msg: msg.text == "⬅️ رجوع")
     def go_back(msg):
         bot.send_message(msg.chat.id, "⬅️ تم الرجوع للقائمة الرئيسية", reply_markup=keyboards.main_menu())
-
-def check_subscription(bot, user_id):
-    try:
-        status = bot.get_chat_member(FORCE_SUB_CHANNEL_USERNAME, user_id).status
-        return status in ["member", "creator", "administrator"]
-    except:
-        return False
 
 WELCOME_MESSAGE = (
     f"مرحبًا بك في {BOT_NAME}, وجهتك الأولى للتسوق الإلكتروني!\n\n"
