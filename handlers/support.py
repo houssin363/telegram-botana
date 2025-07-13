@@ -6,7 +6,6 @@ from handlers import keyboards
 pending_support = {}
 
 def register(bot, history):
-
     @bot.message_handler(func=lambda msg: msg.text == "🛠️ الدعم الفني")
 def request_support(msg):
     
