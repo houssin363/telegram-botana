@@ -117,8 +117,20 @@ def register(bot, history):
             name = call.from_user.full_name if hasattr(call.from_user, 'full_name') else call.from_user.first_name
             register_user_if_not_exist(user_id, name)
 
+            username_part = f" (@{call.from_user.username})" if call.from_user.username else ""
             caption = (
-                f"💳 طلب شحن محفظة جديد:\n"
+                f"💳 طلب شحن محفظة جديد:
+"
+                f"👤 المستخدم: {call.from_user.first_name}{username_part}
+"
+                f"🆔 ID: `{user_id}`
+"
+                f"💵 المبلغ: {data['amount']:,} ل.س
+"
+                f"💳 الطريقة: {data['method']}
+"
+                f"🔢 رقم الإشعار: `{data['ref']}`"
+            )
                 f"👤 المستخدم: {call.from_user.first_name} (@{call.from_user.username})\n"
                 f"🆔 ID: `{user_id}`\n"
                 f"💵 المبلغ: {data['amount']:,} ل.س\n"
