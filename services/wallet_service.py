@@ -3,22 +3,22 @@ from datetime import datetime
 from database.db import get_table
 
 # ---------------------------------------------------------------------------
-# جداول Supabase (تأكّد أن أسمائها مطابقة لما هو في لوحة Supabase)
+# جداول Supabase (يجب أن تطابق الأسـماء فى لوحة Supabase)
 # ---------------------------------------------------------------------------
-TABLE_NAME = "houssin363"          # جدول حسابات المستخدمين
+TABLE_NAME = "houssin363"           # جدول حسابات المستخدمين
 TRANSACTION_TABLE = "transactions"  # جدول سجلّ العمليات المالية
 
 # ---------------------------------------------------------------------------
-# Helper functions
+# Helper functions
 # ---------------------------------------------------------------------------
 
 def _select_single(table_name: str, column: str, user_id: int):
-    """إرجاع أول صف مطابق أو قائمة فارغة من Supabase بدون استخدام maybe_single()."""
+    """جلب قيمة عمود واحد من أول صف يطابق user_id."""
     response = (
         get_table(table_name)
         .select(column)
         .eq("user_id", user_id)
-        .limit(1)       # SAFE: لا يطلق استثناء 204
+        .limit(1)
         .execute()
     )
     return response.data[0][column] if response.data else None
@@ -29,10 +29,9 @@ def _select_single(table_name: str, column: str, user_id: int):
 # ---------------------------------------------------------------------------
 
 def register_user_if_not_exist(user_id: int, name: str = "مستخدم") -> None:
-    """إدراج أو تحديث صفّ المستخدم تلقائيًا باستخدام upsert.
-
-    - إذا كان الصف موجودًا (مفتاح "user_id") → يتجاهل الإدراج.
-    - إذا غير موجود → يُنشئ صفًا بقيم افتراضية.
+    """
+    إدراج المستخدم إذا لم يكن موجوداً، أو تجاهل الإدراج إن كان موجوداً.
+    يعتمد على عمود user_id الفريد فى الجدول houssin363.
     """
     (
         get_table(TABLE_NAME)
@@ -41,7 +40,7 @@ def register_user_if_not_exist(user_id: int, name: str = "مستخدم") -> None
                 "user_id": user_id,
                 "name": name,
                 "balance": 0,
-                "purchases": [],  # نوع العمود jsonb
+                "purchases": [],  # الأعمدة الأخرى لها قيَم افتراضية فى قاعدة البيانات
             },
             on_conflict="user_id",
         )
@@ -50,13 +49,13 @@ def register_user_if_not_exist(user_id: int, name: str = "مستخدم") -> None
 
 
 def get_balance(user_id: int) -> int:
-    """إرجاع رصيد المستخدم أو 0 إن لم يُوجد صف."""
+    """إرجاع رصيد المستخدم، أو 0 إن لم يُوجد صف."""
     balance = _select_single(TABLE_NAME, "balance", user_id)
     return balance if balance is not None else 0
 
 
 def get_purchases(user_id: int):
-    """إرجاع قائمة المشتريات أو قائمة فارغة."""
+    """إرجاع قائمة المشتريات، أو قائمة فارغة."""
     purchases = _select_single(TABLE_NAME, "purchases", user_id)
     return purchases if purchases is not None else []
 
@@ -66,6 +65,7 @@ def get_purchases(user_id: int):
 # ---------------------------------------------------------------------------
 
 def record_transaction(user_id: int, amount: int, description: str) -> None:
+    """تسجيل حركة مالية فى جدول transactions."""
     data = {
         "user_id": user_id,
         "amount": amount,
@@ -76,6 +76,7 @@ def record_transaction(user_id: int, amount: int, description: str) -> None:
 
 
 def get_transfers(user_id: int, limit: int = 10):
+    """جلب آخر الحركات المالية للمستخدم بصيغة نصية جاهزة للعرض."""
     response = (
         get_table(TRANSACTION_TABLE)
         .select("description", "amount", "timestamp")
@@ -115,15 +116,11 @@ def deduct_balance(user_id: int, amount: int, description: str = "خصم تلق�
 
 
 def transfer_balance(from_user_id: int, to_user_id: int, amount: int, fee: int = 8000) -> bool:
-    """تحويل رصيد بين مستخدمين (مع رسوم ثابتة)."""
+    """تحويل رصيد بين مستخدمين مع رسوم ثابتة."""
     total = amount + fee
     if not has_sufficient_balance(from_user_id, total):
         return False
 
-    # خصم من المرسِل (المبلغ + الرسوم)
-    deduct_balance(from_user_id, total, description=f"تحويل إلى {to_user_id} (شامل الرسوم)")
-
-    # إضافة للمستقبِل (فقط المبلغ)
-    add_balance(to_user_id, amount, description=f"تحويل من {from_user_id}")
-
+    deduct_balance(from_user_id, total, f"تحويل إلى {to_user_id} (شامل الرسوم)")
+    add_balance(to_user_id, amount, f"تحويل من {from_user_id}")
     return True
