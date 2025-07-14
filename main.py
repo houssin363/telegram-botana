@@ -1,8 +1,6 @@
-# ملف: main.py
-
 import os
 import telebot
-from config import API_TOKEN, ADMIN_MAIN_ID  # استيراد توكن البوت ومعرّف الأدمن
+from config import API_TOKEN
 
 # ---------------------------------------------------------
 # 1) إنشاء كائن البوت ثم حذف أي Webhook سابق لتجنّب خطأ 409
@@ -23,7 +21,7 @@ from handlers import (
     products,
     media_services,
     wholesale,
-    syr_units,
+    syr_units,  # تسجيل وحدات سورية
 )
 from handlers.keyboards import (
     main_menu,
@@ -39,7 +37,7 @@ from handlers.keyboards import (
 )
 
 # ---------------------------------------------------------
-# 3) حالة المستخدم (لتتبّع مكانه في القوائم)
+# 3) حالة المستخدم
 # ---------------------------------------------------------
 user_state: dict[int, str] = {}
 
@@ -58,7 +56,7 @@ wholesale.register(bot, user_state)
 syr_units.register(bot, user_state)
 
 # ---------------------------------------------------------
-# 5) زر “⬅️ رجوع” الذكي
+# 5) زر الرجوع الذكي
 # ---------------------------------------------------------
 @bot.message_handler(func=lambda msg: msg.text == "⬅️ رجوع")
 def handle_back(msg):
@@ -84,22 +82,12 @@ def handle_back(msg):
         user_state[user_id] = "main_menu"
 
 # ---------------------------------------------------------
-# 6) تشغيل البوت مع استعادة تلقائية عند حدوث خطأ
+# 6) تشغيل البوت
 # ---------------------------------------------------------
 print("🤖 البوت يعمل الآن…")
 
-def run_bot():
-    try:
-        bot.infinity_polling(
-            none_stop=True,
-            skip_pending=True,
-            long_polling_timeout=40,
-        )
-    except Exception as e:
-        # إرسال رسالة خطأ للأدمن مع تفاصيل الاستثناء
-        bot.send_message(ADMIN_MAIN_ID, f"❌ حدث خطأ في polling: {e}")
-        # إعادة تشغيل البوت تلقائياً
-        run_bot()
-
-if __name__ == "__main__":
-    run_bot()
+bot.infinity_polling(
+    none_stop=True,
+    skip_pending=True,
+    long_polling_timeout=40,
+)
