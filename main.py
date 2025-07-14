@@ -1,6 +1,6 @@
 import os
 import telebot
-from config import API_TOKEN
+from config import API_TOKEN, ADMIN_MAIN_ID
 
 # ---------------------------------------------------------
 # 1) إنشاء كائن البوت ثم حذف أي Webhook سابق لتجنّب خطأ 409
@@ -82,14 +82,22 @@ def handle_back(msg):
         user_state[user_id] = "main_menu"
 
 # ---------------------------------------------------------
-# 6) تشغيل البوت
+# 6) تشغيل البوت مع معالجة الأخطاء العامة
 # ---------------------------------------------------------
 print("🤖 البوت يعمل الآن…")
 
-bot.infinity_polling(
-    none_stop=True,
-    skip_pending=True,
-    long_polling_timeout=40,
-)
-except Exception as e:
-    bot.send_message(chat.id, "❌ حدث خطأ: {}")  # ← هنا السطر الجديد
+def run_bot():
+    try:
+        bot.infinity_polling(
+            none_stop=True,
+            skip_pending=True,
+            long_polling_timeout=40,
+        )
+    except Exception as e:
+        # أرسل الخطأ إلى الأدمن ليعرف بما حدث
+        bot.send_message(ADMIN_MAIN_ID, f"❌ حدث خطأ في polling: {e}")
+        # يمكنك إعادة المحاولة بعد تأخير بسيط:
+        run_bot()
+
+if __name__ == "__main__":
+    run_bot()
