@@ -56,11 +56,16 @@ def _select_single(table_name: str, column: str, user_id: int):
 # ---------------------------------------------------------------------------
 
 def register_user_if_not_exist(user_id: int, name: str = "مستخدم") -> None:
+    """
+    إدراج المستخدم إذا لم يكن موجوداً، أو تحديث اسمه فقط إن كان موجوداً.
+    لا تغيّر الرصيد أو المشتريات حتى لا تصفرها!
+    """
     get_table(TABLE_NAME).upsert(
         {
             "user_id": user_id,
             "name": name,
-            # لا ترسل balance أو purchases هنا حتى لا تصفر القيم الموجودة!
+            # لا تضع balance هنا أبداً!
+            # لا تضع purchases هنا أبداً!
         },
         on_conflict="user_id",
     ).execute()
