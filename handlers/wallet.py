@@ -5,6 +5,7 @@ from services.wallet_service import (
     get_balance, get_purchases, get_transfers,
     has_sufficient_balance, transfer_balance, get_table,
     register_user_if_not_exist,  # ✅ الاستيراد الصحيح
+    _select_single  # ستحتاجه للتحقق من العملاء
 )
 
 transfer_steps = {}
@@ -110,6 +111,20 @@ def register(bot, user_state):
         except:
             bot.send_message(msg.chat.id, "❌ الرجاء إدخال رقم ID صحيح.")
             return
+
+        # ✅ تحقق من العميل في قاعدة البيانات
+        is_client = _select_single("houssin363", "user_id", target_id)
+        if not is_client:
+            bot.send_message(
+                msg.chat.id,
+                "❌ هذا الرقم ليس من عملائنا. هذه الخدمة خاصة بعملاء المتجر فقط.\n"
+                "يمكنك دعوة العميل للاشتراك في البوت عبر الرابط التالي:\n"
+                "https://t.me/my_fast_shop_bot",
+                reply_markup=keyboards.wallet_menu()
+            )
+            transfer_steps.pop(msg.from_user.id, None)
+            return
+
         transfer_steps[msg.from_user.id].update({"step": "awaiting_amount", "target_id": target_id})
         bot.send_message(msg.chat.id, "💵 أدخل المبلغ الذي تريد تحويله:")
 
@@ -124,16 +139,28 @@ def register(bot, user_state):
         if amount <= 0:
             bot.send_message(msg.chat.id, "❌ لا يمكن تحويل مبلغ صفر أو أقل.")
             return
-        if not has_sufficient_balance(user_id, amount + 8000):
+
+        # تحقق من الرصيد المتوفر لدى العميل
+        current_balance = get_balance(user_id)
+        min_left = 6000
+        if current_balance - amount < min_left:
+            short = amount - (current_balance - min_left)
+            kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
+            kb.add("⬅️ العودة إلى طرق المحفظة", "❌ إلغاء")
             bot.send_message(
                 msg.chat.id,
-                f"❌ تحتاج إلى إضافي ٨٠٠٠ ل.س كحد أدنى.",
-                reply_markup=keyboards.wallet_menu()
+                f"❌ طلبك مرفوض!\n"
+                f"لا يمكن أن يقل الرصيد في المحفظة عن {min_left:,} ل.س بعد التحويل.\n"
+                f"لتحويل {amount:,} ل.س، يجب شحن محفظتك بمبلغ لا يقل عن {short:,} ل.س.",
+                reply_markup=kb
             )
             transfer_steps.pop(user_id, None)
             return
-        transfer_steps[user_id].update({"step": "awaiting_confirm", "amount": amount})
+
+        # استرجع رقم العميل المستقبل
         target_id = transfer_steps[user_id]["target_id"]
+        # أكمل التحويل
+        transfer_steps[user_id].update({"step": "awaiting_confirm", "amount": amount})
         kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
         kb.add("✅ تأكيد التحويل", "⬅️ رجوع", "🔄 ابدأ من جديد")
         bot.send_message(
