@@ -1,15 +1,42 @@
-from datetime import datetime
+"""
+------------------------------------------------------------------
+🔸 جداول قاعدة البيانات (Supabase) المطابقة تماماً للصورة والطلب 🔸
+------------------------------------------------------------------
 
+-- 1) جدول المستخدمين houssin363
+CREATE TABLE public.houssin363 (
+  uuid        uuid        PRIMARY KEY      DEFAULT gen_random_uuid(),
+  user_id     int8,
+  name        text,
+  balance     int4        DEFAULT 0,
+  purchases   jsonb       DEFAULT '[]'::jsonb,
+  created_at  timestamptz DEFAULT now()
+);
+
+-- 2) جدول الحركات المالية transactions
+CREATE TABLE public.transactions (
+  id          bigserial   PRIMARY KEY,
+  user_id     int8        REFERENCES public.houssin363(user_id) ON DELETE CASCADE,
+  amount      int4        NOT NULL,
+  description text,
+  timestamp   timestamptz DEFAULT now()
+);
+
+CREATE INDEX ON public.transactions(user_id);
+------------------------------------------------------------------
+"""
+
+from datetime import datetime
 from database.db import get_table
 
 # ---------------------------------------------------------------------------
-# جداول Supabase (يجب أن تطابق الأسـماء فى لوحة Supabase)
+# أسماء الجداول (يجب أن تطابق تماماً الأسماء فى Supabase)
 # ---------------------------------------------------------------------------
-TABLE_NAME = "houssin363"           # جدول حسابات المستخدمين
-TRANSACTION_TABLE = "transactions"  # جدول سجلّ العمليات المالية
+TABLE_NAME        = "houssin363"           # جدول حسابات المستخدمين
+TRANSACTION_TABLE = "transactions"         # جدول سجلّ العمليات المالية
 
 # ---------------------------------------------------------------------------
-# Helper functions
+# دوال مساعدة داخليّة
 # ---------------------------------------------------------------------------
 
 def _select_single(table_name: str, column: str, user_id: int):
@@ -31,7 +58,7 @@ def _select_single(table_name: str, column: str, user_id: int):
 def register_user_if_not_exist(user_id: int, name: str = "مستخدم") -> None:
     """
     إدراج المستخدم إذا لم يكن موجوداً، أو تجاهل الإدراج إن كان موجوداً.
-    يعتمد على عمود user_id الفريد فى الجدول houssin363.
+    يعتمد على عمود user_id فى جدول houssin363.
     """
     (
         get_table(TABLE_NAME)
@@ -116,7 +143,10 @@ def deduct_balance(user_id: int, amount: int, description: str = "خصم تلق�
 
 
 def transfer_balance(from_user_id: int, to_user_id: int, amount: int, fee: int = 8000) -> bool:
-    """تحويل رصيد بين مستخدمين مع رسوم ثابتة."""
+    """
+    تحويل رصيد بين مستخدمين مع رسوم ثابتة.
+    يُخصَم (amount + fee) من المُرسِل، ويُودَع amount لدى المستقبِل.
+    """
     total = amount + fee
     if not has_sufficient_balance(from_user_id, total):
         return False
