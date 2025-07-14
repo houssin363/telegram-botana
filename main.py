@@ -91,3 +91,5 @@ bot.infinity_polling(
     skip_pending=True,
     long_polling_timeout=40,
 )
+except Exception as e:
+    bot.send_message(chat.id, "❌ حدث خطأ: {}")  # ← هنا السطر الجديد
