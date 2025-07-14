@@ -56,23 +56,14 @@ def _select_single(table_name: str, column: str, user_id: int):
 # ---------------------------------------------------------------------------
 
 def register_user_if_not_exist(user_id: int, name: str = "مستخدم") -> None:
-    """
-    إدراج المستخدم إذا لم يكن موجوداً، أو تجاهل الإدراج إن كان موجوداً.
-    يعتمد على عمود user_id فى جدول houssin363.
-    """
-    (
-        get_table(TABLE_NAME)
-        .upsert(
-            {
-                "user_id": user_id,
-                "name": name,
-                "balance": 0,
-                "purchases": [],  # الأعمدة الأخرى لها قيَم افتراضية فى قاعدة البيانات
-            },
-            on_conflict="user_id",
-        )
-        .execute()
-    )
+    get_table(TABLE_NAME).upsert(
+        {
+            "user_id": user_id,
+            "name": name,
+            # لا ترسل balance أو purchases هنا حتى لا تصفر القيم الموجودة!
+        },
+        on_conflict="user_id",
+    ).execute()
 
 
 def get_balance(user_id: int) -> int:
