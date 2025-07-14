@@ -49,7 +49,6 @@ def convert_price_usd_to_syp(usd):
 
 # ============= إضافة سجل شراء جديد في Supabase =============
 def add_purchase(user_id, product_name, price, player_id):
-    # player_id يجب أن يكون موجود كعمود في purchases (text)
     client.table("purchases").insert({
         "user_id": user_id,
         "product_name": product_name,
@@ -212,15 +211,16 @@ def setup_inline_handlers(bot, admin_ids):
                 types.InlineKeyboardButton("✅ تم التنفيذ", callback_data=f"admin_approve_{user_id}"),
                 types.InlineKeyboardButton("❌ رفض الطلب", callback_data=f"admin_reject_{user_id}")
             )
+            # تم تعديل السطر لجعل الآيدي قابل للنسخ (بين Backticks)
             admin_msg = (
                 f"طلب جديد:\n"
-                f"User Telegram ID: {user_id}\n"
-                f"العميل: {call.from_user.full_name} @{call.from_user.username}\n"
-                f"نوع العملية: {product.name}\n"
-                f"آيدي اللاعب: {player_id}\n"
-                f"السعر: {price_syp:,} ل.س"
+                f"👤 المستخدم: {call.from_user.full_name} (@{call.from_user.username})\n"
+                f"🆔 آيدي التليجرام: `{user_id}`\n"
+                f"🔖 نوع العملية: {product.name}\n"
+                f"🎮 آيدي اللاعب: `{player_id}`\n"
+                f"💵 السعر: {price_syp:,} ل.س"
             )
-            bot.send_message(admin_id, admin_msg, reply_markup=admin_keyboard)
+            bot.send_message(admin_id, admin_msg, parse_mode="Markdown", reply_markup=admin_keyboard)
 
     @bot.callback_query_handler(func=lambda c: c.data.startswith("admin_approve_") or c.data.startswith("admin_reject_"))
     def on_admin_action(call):
@@ -258,6 +258,6 @@ def handle_player_id(message, bot, admin_ids):
         types.InlineKeyboardButton("✅ تأكيد", callback_data="confirm_player_id"),
     )
     keyboard.add(types.InlineKeyboardButton("⬅️ رجوع", callback_data="back_to_products"))
-    bot.send_message(user_id, f"هل هذا هو آيدي اللاعب الخاص بك؟\n{player_id}", reply_markup=keyboard)
+    bot.send_message(user_id, f"هل هذا هو آيدي اللاعب الخاص بك؟\n`{player_id}`", parse_mode="Markdown", reply_markup=keyboard)
 
 # ==================== نهاية الملف ====================
