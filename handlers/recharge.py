@@ -1,7 +1,7 @@
 from telebot import types
 from config import ADMIN_MAIN_ID
 from handlers import keyboards  # ✅ الكيبورد الموحد
-from services.wallet_service import register_user_if_not_exist  # ✅ الاستيراد الجديد
+from services.wallet_service import register_user_if_not_exist, add_balance, get_balance  # ✅ الاستيراد الجديد
 
 recharge_requests = {}
 recharge_pending = set()
@@ -148,7 +148,6 @@ def register(bot, history):
             bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
 
         elif call.data == "user_edit_recharge":
-            # إعادة الخطوات للمستخدم لإدخال رقم الإشعار والمبلغ من جديد
             if user_id in recharge_requests:
                 recharge_requests[user_id].pop("amount", None)
                 recharge_requests[user_id].pop("ref", None)
@@ -161,3 +160,46 @@ def register(bot, history):
 
         elif call.data == "user_cancel_recharge":
             recharge_requests.pop(user_id, None)
+            recharge_pending.discard(user_id)
+            bot.send_message(
+                user_id,
+                "❌ تم إلغاء الطلب، يمكنك البدء من جديد.",
+                reply_markup=keyboards.recharge_menu()
+            )
+            # إعادة عرض قائمة الشحن
+            start_recharge_menu(bot, call.message, history)
+            bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+
+    # معالجات الأدمن
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("confirm_add_"))
+    def handle_admin_confirm(call):
+        if call.from_user.id != ADMIN_MAIN_ID:
+            return
+        _, _, user_str, amount_str = call.data.split("_")
+        user_id, amount = int(user_str), int(amount_str)
+        add_balance(user_id, amount)
+        recharge_pending.discard(user_id)
+        recharge_requests.pop(user_id, None)
+        bot.answer_callback_query(call.id, "✅ تم قبول الشحن وإضافة الرصيد.")
+        bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+        bot.send_message(
+            user_id,
+            f"✅ تم إضافة {amount:,} ل.س إلى محفظتك بنجاح. رصيدك الآن: {get_balance(user_id):,} ل.س",
+            reply_markup=keyboards.recharge_menu()
+        )
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("reject_add_"))
+    def handle_admin_reject(call):
+        if call.from_user.id != ADMIN_MAIN_ID:
+            return
+        _, _, user_str = call.data.split("_")
+        user_id = int(user_str)
+        recharge_pending.discard(user_id)
+        recharge_requests.pop(user_id, None)
+        bot.answer_callback_query(call.id, "❌ تم رفض طلب الشحن.")
+        bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+        bot.send_message(
+            user_id,
+            "❌ تم رفض طلب شحن محفظتك. يمكنك المحاولة مرة أخرى.",
+            reply_markup=keyboards.recharge_menu()
+        )
