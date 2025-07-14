@@ -5,7 +5,7 @@ from services.wallet_service import (
     get_balance, get_purchases, get_transfers,
     has_sufficient_balance, transfer_balance, get_table,
     register_user_if_not_exist,  # ✅ الاستيراد الصحيح
-    _select_single  # ستحتاجه للتحقق من العملاء
+    _select_single,  # لاستعماله في التحقق من العميل
 )
 
 transfer_steps = {}
@@ -111,8 +111,7 @@ def register(bot, user_state):
         except:
             bot.send_message(msg.chat.id, "❌ الرجاء إدخال رقم ID صحيح.")
             return
-
-        # ✅ تحقق من العميل في قاعدة البيانات
+        # تحقق من العميل في قاعدة البيانات
         is_client = _select_single("houssin363", "user_id", target_id)
         if not is_client:
             bot.send_message(
@@ -124,7 +123,6 @@ def register(bot, user_state):
             )
             transfer_steps.pop(msg.from_user.id, None)
             return
-
         transfer_steps[msg.from_user.id].update({"step": "awaiting_amount", "target_id": target_id})
         bot.send_message(msg.chat.id, "💵 أدخل المبلغ الذي تريد تحويله:")
 
@@ -146,7 +144,7 @@ def register(bot, user_state):
         if current_balance - amount < min_left:
             short = amount - (current_balance - min_left)
             kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
-            kb.add("⬅️ العودة إلى طرق المحفظة", "❌ إلغاء")
+            kb.add("✏️ تعديل المبلغ", "❌ إلغاء")
             bot.send_message(
                 msg.chat.id,
                 f"❌ طلبك مرفوض!\n"
@@ -154,7 +152,7 @@ def register(bot, user_state):
                 f"لتحويل {amount:,} ل.س، يجب شحن محفظتك بمبلغ لا يقل عن {short:,} ل.س.",
                 reply_markup=kb
             )
-            transfer_steps.pop(user_id, None)
+            transfer_steps[user_id]["step"] = "awaiting_amount"
             return
 
         # استرجع رقم العميل المستقبل
@@ -169,6 +167,35 @@ def register(bot, user_state):
             parse_mode="Markdown",
             reply_markup=kb
         )
+
+    # زر تعديل المبلغ
+    @bot.message_handler(func=lambda msg: msg.text == "✏️ تعديل المبلغ")
+    def edit_amount(msg):
+        user_id = msg.from_user.id
+        if transfer_steps.get(user_id, {}).get("step") == "awaiting_amount":
+            bot.send_message(
+                msg.chat.id,
+                "💵 أدخل المبلغ الجديد الذي تريد تحويله:",
+                reply_markup=keyboards.hide_keyboard()
+            )
+        else:
+            bot.send_message(
+                msg.chat.id,
+                "تم إلغاء العملية.",
+                reply_markup=keyboards.wallet_menu()
+            )
+            transfer_steps.pop(user_id, None)
+
+    # زر إلغاء العملية
+    @bot.message_handler(func=lambda msg: msg.text == "❌ إلغاء")
+    def cancel_transfer(msg):
+        user_id = msg.from_user.id
+        bot.send_message(
+            msg.chat.id,
+            "تم إلغاء العملية والرجوع إلى القائمة الرئيسية.",
+            reply_markup=keyboards.wallet_menu()
+        )
+        transfer_steps.pop(user_id, None)
 
     @bot.message_handler(func=lambda msg: msg.text == "✅ تأكيد التحويل")
     def confirm_transfer(msg):
