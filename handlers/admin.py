@@ -1,9 +1,18 @@
-from telebot import types
-from datetime import datetime
-from config import ADMINS, ADMIN_MAIN_ID
-from services.wallet_service import register_user_if_not_exist, add_balance, deduct_balance
-import json
-import os
+@@
+ from telebot import types
+ from datetime import datetime
+ from config import ADMINS, ADMIN_MAIN_ID
+ from services.wallet_service import register_user_if_not_exist, add_balance, deduct_balance
++import logging            # ⬅️  أضِف هذا
+ import json
+ import os
+@@
+         except Exception as e:
+            bot.send_message(call.message.chat.id, f"❌ حدث خطأ: {e}")
+            # يُرسل الخطأ إلى سجلّ Render ويطبع للمشرف كالعادة
+            logging.exception("❌ خطأ داخل confirm_wallet_add:")
+            bot.send_message(call.message.chat.id, f"❌ حدث خطأ: {e}")
+
 
 # ملف تخزين عمليات الأكواد السرّية
 SECRET_CODES_FILE = "data/secret_codes.json"
