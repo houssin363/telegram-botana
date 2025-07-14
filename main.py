@@ -1,12 +1,11 @@
 import os
 import sys
-import traceback
 import logging
 import telebot
 from config import API_TOKEN
 
 # ---------------------------------------------------------
-# إعداد تسجيل الأخطاء (Logs) لعرضها في Render
+# تسجيل الأخطاء لظهورها في سجلّ Render
 # ---------------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
@@ -15,6 +14,7 @@ logging.basicConfig(
 )
 
 def _unhandled_exception_hook(exc_type, exc_value, exc_tb):
+    """طباعة أي استثناء غير مُعالج بالكامل في اللوجز."""
     logging.critical("❌ Unhandled exception:", exc_info=(exc_type, exc_value, exc_tb))
 
 sys.excepthook = _unhandled_exception_hook
@@ -103,8 +103,16 @@ def handle_back(msg):
 # ---------------------------------------------------------
 print("🤖 البوت يعمل الآن…")
 
-bot.infinity_polling(
-    none_stop=True,
-    skip_pending=True,
-    long_polling_timeout=40,
-)
+try:
+    bot.infinity_polling(
+        none_stop=True,
+        skip_pending=True,
+        long_polling_timeout=40,
+    )
+except telebot.apihelper.ApiTelegramException as e:
+    # خطأ 409 = نسخة أخرى من البوت متصلة بالفعل
+    if getattr(e, "error_code", None) == 409:
+        logging.critical("❌ تم إيقاف هذه النسخة لأن نسخة أخرى من البوت متصلة بالفعل.")
+    else:
+        # أعد رفع الخطأ لتعرف المشكلات الأخرى
+        raise
