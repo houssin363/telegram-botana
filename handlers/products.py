@@ -4,6 +4,9 @@ from handlers import keyboards
 from database.models.product import Product
 from services.wallet_service import register_user_if_not_exist, get_balance, deduct_balance
 
+# استدعاء عميل supabase
+from database.db import client
+
 # منتجات مقسمة حسب التصنيفات
 PRODUCTS = {
     "PUBG": [
@@ -34,7 +37,7 @@ PRODUCTS = {
 pending_orders = set()
 user_orders = {}
 
-# ==================== دالة التحويل السري للأسعار ====================
+# ============= تحويل السعر للدولار السوري (سرّي) =============
 def convert_price_usd_to_syp(usd):
     if usd <= 5:
         return int(usd * 11800)
@@ -44,7 +47,17 @@ def convert_price_usd_to_syp(usd):
         return int(usd * 11300)
     return int(usd * 11000)
 
-# ==================== عرض قوائم المنتجات والتصنيفات ====================
+# ============= إضافة سجل شراء جديد في Supabase =============
+def add_purchase(user_id, product_name, price, player_id):
+    # player_id يجب أن يكون موجود كعمود في purchases (text)
+    client.table("purchases").insert({
+        "user_id": user_id,
+        "product_name": product_name,
+        "price": price,
+        "player_id": player_id
+    }).execute()
+
+# ============= عرض قوائم المنتجات والتصنيفات =============
 def show_products_menu(bot, message):
     bot.send_message(message.chat.id, "📍 اختر نوع المنتج:", reply_markup=keyboards.products_menu())
 
@@ -58,16 +71,14 @@ def show_product_options(bot, message, category):
         label = f"{product.name} ({product.price}$)"
         callback_data = f"select_{product.product_id}"
         keyboard.add(types.InlineKeyboardButton(label, callback_data=callback_data))
-    # زر رجوع عصري
     keyboard.add(types.InlineKeyboardButton("⬅️ رجوع", callback_data="back_to_categories"))
     bot.send_message(message.chat.id, f"📦 اختر الكمية لـ {category}:", reply_markup=keyboard)
 
-# ==================== متغيرات الحفظ المؤقت ====================
 def clear_user_order(user_id):
     user_orders.pop(user_id, None)
     pending_orders.discard(user_id)
 
-# ==================== تسجيل المستخدم ====================
+# ============= تسجيل المستخدم =============
 def register(bot, history):
     @bot.message_handler(func=lambda msg: msg.text in ["🛒 المنتجات", "💼 المنتجات"])
     def handle_main_product_menu(msg):
@@ -107,7 +118,7 @@ def register(bot, history):
         user_orders[user_id] = {"category": category}
         show_product_options(bot, msg, category)
 
-# ==================== الهاندلر الرئيسي للأزرار المضمنة ====================
+# ============= الهاندلر الرئيسي للأزرار المضمنة =============
 def setup_inline_handlers(bot, admin_ids):
     @bot.callback_query_handler(func=lambda c: c.data.startswith("select_"))
     def on_select_product(call):
@@ -116,6 +127,7 @@ def setup_inline_handlers(bot, admin_ids):
             bot.answer_callback_query(call.id, "لا يمكنك إرسال طلب جديد حتى يتم معالجة طلبك الحالي.", show_alert=True)
             return
         product_id = int(call.data.replace("select_", ""))
+        selected_product = None
         for category, items in PRODUCTS.items():
             for product in items:
                 if product.product_id == product_id:
@@ -123,7 +135,6 @@ def setup_inline_handlers(bot, admin_ids):
                     break
         order = user_orders.setdefault(user_id, {})
         order["product"] = selected_product
-        # زر رجوع
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(types.InlineKeyboardButton("⬅️ رجوع", callback_data="back_to_products"))
         msg = bot.send_message(user_id, "💡 أدخل آيدي اللاعب الخاص بك:", reply_markup=keyboard)
@@ -146,7 +157,6 @@ def setup_inline_handlers(bot, admin_ids):
     @bot.callback_query_handler(func=lambda c: c.data == "edit_player_id")
     def edit_player_id(call):
         user_id = call.from_user.id
-        # أطلب منه آيدي جديد
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(types.InlineKeyboardButton("⬅️ رجوع", callback_data="back_to_products"))
         msg = bot.send_message(user_id, "💡 أعد إدخال آيدي اللاعب:", reply_markup=keyboard)
@@ -204,6 +214,7 @@ def setup_inline_handlers(bot, admin_ids):
             )
             admin_msg = (
                 f"طلب جديد:\n"
+                f"User Telegram ID: {user_id}\n"
                 f"العميل: {call.from_user.full_name} @{call.from_user.username}\n"
                 f"نوع العملية: {product.name}\n"
                 f"آيدي اللاعب: {player_id}\n"
@@ -223,12 +234,20 @@ def setup_inline_handlers(bot, admin_ids):
         price_syp = convert_price_usd_to_syp(product.price)
         if call.data.startswith("admin_approve_"):
             deduct_balance(user_id, price_syp, f"شراء {product.name}")
-            bot.send_message(user_id, "✅ تم تنفيذ طلبك بنجاح وتم خصم المبلغ من محفظتك!", reply_markup=keyboards.main_menu())
+            # إضافة سجل الشراء في جدول المشتريات
+            add_purchase(user_id, product.name, price_syp, player_id)
+            bot.send_message(
+                user_id,
+                f"✅ تم تنفيذ طلبك بنجاح!\n"
+                f"المنتج: {product.name}\n"
+                f"السعر: {price_syp:,} ل.س\n"
+                f"آيدي اللاعب: {player_id}",
+                reply_markup=keyboards.main_menu()
+            )
         else:
             bot.send_message(user_id, "❌ عذرًا، لم يتم تنفيذ طلبك حاليًا. سنبلغك عند توفر المنتج.", reply_markup=keyboards.main_menu())
         clear_user_order(user_id)
 
-# ==================== معالجة إدخال آيدي اللاعب ====================
 def handle_player_id(message, bot, admin_ids):
     user_id = message.from_user.id
     player_id = message.text.strip()
