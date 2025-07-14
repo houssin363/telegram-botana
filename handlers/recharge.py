@@ -16,7 +16,6 @@ def start_recharge_menu(bot, message, history=None):
         reply_markup=keyboards.recharge_menu()
     )
 
-
 def register(bot, history):
 
     @bot.message_handler(func=lambda msg: msg.text == "💳 شحن محفظتي")
@@ -161,3 +160,17 @@ def register(bot, history):
 
         elif call.data == "user_cancel_recharge":
             recharge_requests.pop(user_id, None)
+            recharge_pending.discard(user_id)
+            bot.send_message(
+                user_id,
+                "❌ تم إلغاء الطلب، يمكنك البدء من جديد.",
+                reply_markup=keyboards.recharge_menu()
+            )
+            # العودة لاختيار طريقة الشحن من جديد
+            fake_msg = types.SimpleNamespace()  # اختصار لإرسال start_recharge_menu من دون رسالة حقيقية
+            fake_msg.from_user = types.SimpleNamespace()
+            fake_msg.from_user.id = user_id
+            fake_msg.chat = types.SimpleNamespace()
+            fake_msg.chat.id = user_id
+            start_recharge_menu(bot, fake_msg, history)
+            bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
