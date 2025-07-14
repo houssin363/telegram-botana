@@ -116,3 +116,4 @@ except telebot.apihelper.ApiTelegramException as e:
     else:
         # أعد رفع الخطأ لتعرف المشكلات الأخرى
         raise
+import scheduled_tasks  # لإطلاق المهام الدورية تلقائيًا عند تشغيل البوت
