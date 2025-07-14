@@ -6,6 +6,47 @@ from services.wallet_service import register_user_if_not_exist  # ✅ الاست
 recharge_requests = {}
 recharge_pending = set()
 
+# ============== أرقام/أكواد الشحن التي يمكن للإدمن تعديلها بسهولة ==============
+SYRIATEL_NUMBERS = ["0011111", "0022222", "0033333", "0044444"]
+MTN_NUMBERS = ["0005555", "0006666", "0006666", "0007777"]
+SHAMCASH_CODES = ["000xz55XH55", "00YI06MB666"]
+PAYEER_CODES = ["0PPWY0777JG7"]
+
+def get_method_instructions(method):
+    if method == "سيرياتيل كاش":
+        text = (
+            "📲 *سيرياتيل كاش*\n"
+            "حول المبلغ إلى أحد الأرقام التالية عبر (الدفع اليدوي):\n"
+            f"🔢 {'   -   '.join(SYRIATEL_NUMBERS)}\n"
+            "⚠️ لسنا مسؤولين عن تحويل الوحدات (انتبه للتعليمات)\n\n"
+            "يمكنك نسخ الرقم المطلوب بسهولة."
+        )
+    elif method == "أم تي إن كاش":
+        text = (
+            "📲 *أم تي إن كاش*\n"
+            "حول المبلغ إلى أحد الأرقام التالية عبر (الدفع اليدوي):\n"
+            f"🔢 {'   -   '.join(MTN_NUMBERS)}\n"
+            "⚠️ لسنا مسؤولين عن تحويل الوحدات (انتبه للتعليمات)\n\n"
+            "يمكنك نسخ الرقم المطلوب بسهولة."
+        )
+    elif method == "شام كاش":
+        text = (
+            "📲 *شام كاش*\n"
+            "حول المبلغ إلى أحد الأكواد التالية:\n"
+            f"🔢 {'   -   '.join(SHAMCASH_CODES)}\n"
+            "يمكنك نسخ الكود المطلوب بسهولة."
+        )
+    elif method == "Payeer":
+        text = (
+            "💳 *Payeer*\n"
+            "حول المبلغ إلى الكود التالي:\n"
+            f"🔢 {'   -   '.join(PAYEER_CODES)}\n"
+            "يمكنك نسخ الكود بسهولة."
+        )
+    else:
+        text = "حدث خطأ في تحديد طريقة الشحن."
+    return text
+
 # ✅ عرض قائمة طرق الشحن
 def start_recharge_menu(bot, message, history=None):
     if history:
@@ -33,11 +74,37 @@ def register(bot, history):
 
         method = msg.text.replace("📲 ", "").replace("💳 ", "")
         recharge_requests[user_id] = {"method": method}
+        # عرض التعليمات مع الأرقام/الأكواد وزر تأكيد أو إلغاء
+        instructions = get_method_instructions(method)
+        markup = types.InlineKeyboardMarkup()
+        markup.add(
+            types.InlineKeyboardButton("✅ تأكيد التحويل", callback_data="confirm_recharge_method"),
+            types.InlineKeyboardButton("❌ إلغاء", callback_data="cancel_recharge_method")
+        )
         bot.send_message(
             msg.chat.id,
-            "📸 أرسل صورة إشعار الدفع (سكرين أو لقطة شاشة):",
-            reply_markup=keyboards.recharge_menu()
+            instructions,
+            parse_mode="Markdown",
+            reply_markup=markup
         )
+
+    @bot.callback_query_handler(func=lambda call: call.data in ["confirm_recharge_method", "cancel_recharge_method"])
+    def handle_method_confirm_cancel(call):
+        user_id = call.from_user.id
+        if call.data == "confirm_recharge_method":
+            # بعد التأكيد يطلب صورة الاشعار
+            bot.send_message(
+                call.message.chat.id,
+                "📸 أرسل صورة إشعار الدفع (سكرين أو لقطة شاشة):",
+                reply_markup=keyboards.recharge_menu()
+            )
+        else:
+            recharge_requests.pop(user_id, None)
+            bot.send_message(
+                call.message.chat.id,
+                "❌ تم إلغاء العملية. يمكنك البدء من جديد.",
+                reply_markup=keyboards.recharge_menu()
+            )
 
     @bot.message_handler(content_types=["photo"])
     def handle_photo(msg):
@@ -167,10 +234,12 @@ def register(bot, history):
                 reply_markup=keyboards.recharge_menu()
             )
             # العودة لاختيار طريقة الشحن من جديد
-            fake_msg = types.SimpleNamespace()  # اختصار لإرسال start_recharge_menu من دون رسالة حقيقية
+            fake_msg = types.SimpleNamespace()
             fake_msg.from_user = types.SimpleNamespace()
             fake_msg.from_user.id = user_id
             fake_msg.chat = types.SimpleNamespace()
             fake_msg.chat.id = user_id
             start_recharge_menu(bot, fake_msg, history)
             bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+
+# === نهاية الملف ===
