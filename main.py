@@ -1,6 +1,23 @@
 import os
+import sys
+import traceback
+import logging
 import telebot
 from config import API_TOKEN
+
+# ---------------------------------------------------------
+# إعداد تسجيل الأخطاء (Logs) لعرضها في Render
+# ---------------------------------------------------------
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
+
+def _unhandled_exception_hook(exc_type, exc_value, exc_tb):
+    logging.critical("❌ Unhandled exception:", exc_info=(exc_type, exc_value, exc_tb))
+
+sys.excepthook = _unhandled_exception_hook
 
 # ---------------------------------------------------------
 # 1) إنشاء كائن البوت ثم حذف أي Webhook سابق لتجنّب خطأ 409
