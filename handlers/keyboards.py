@@ -49,9 +49,9 @@ def recharge_menu():
 def cash_transfer_menu():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
     markup.add(
-        types.KeyboardButton("تحويل إلى سيرياتيل كاش"),
-        types.KeyboardButton("تحويل إلى شام كاش"),
-        types.KeyboardButton("تحويل إلى أم تي إن كاش"),
+        types.KeyboardButton("سيرياتيل كاش"),
+        types.KeyboardButton("أم تي إن كاش"),
+        types.KeyboardButton("شام كاش"),
         types.KeyboardButton("⬅️ رجوع"),
         types.KeyboardButton("🔄 ابدأ من جديد")
     )
