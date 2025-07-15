@@ -212,6 +212,19 @@ def register(bot, user_state):
         if not success:
             bot.send_message(msg.chat.id, "❌ فشل التحويل. تحقق من الرصيد والمحفظة.")
             return
+        # رسالة للمحول
         bot.send_message(msg.chat.id, "✅ تم تحويل المبلغ بنجاح.", reply_markup=keyboards.wallet_menu())
+        # رسالة للمستلم الجديد
+        try:
+            sender_name = msg.from_user.full_name
+            bot.send_message(
+                target_id,
+                f"💰 تم شحن محفظتك من محفظة {sender_name} بمبلغ قدره {amount:,} ل.س.",
+                reply_markup=keyboards.wallet_menu()
+            )
+        except Exception as e:
+            pass  # العميل ربما حظر البوت أو لم يبدأه بعد
         transfer_steps.pop(user_id, None)
         show_wallet(bot, msg, user_state)
+
+# === نهاية الملف ===
