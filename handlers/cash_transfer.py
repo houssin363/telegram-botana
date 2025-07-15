@@ -269,7 +269,7 @@ def register(bot, history):
             ("✔️ تأكيد", "confirm_fullname_company")
         )
         bot.edit_message_text(
-            "👤 أدخل اسم المستفيد كاملًا (الاسم - الكنية - اسم الأب):",
+            "👤 أدخل اسم المستفيد كاملًا (الاسم - الكنية - أبن الأب):",
             call.message.chat.id, call.message.message_id
         )
 
@@ -293,7 +293,7 @@ def register(bot, history):
     def edit_fullname(call):
         user_id = call.from_user.id
         user_states[user_id]["step"] = "fullname_company"
-        bot.send_message(call.message.chat.id, "👤 أعد إدخال اسم المستفيد (الاسم - الكنية - اسم الأب):")
+        bot.send_message(call.message.chat.id, "👤 أعد إدخال اسم المستفيد (الاسم - الكنية - أبن الأب):")
 
     @bot.callback_query_handler(func=lambda call: call.data == "confirm_fullname_company")
     def confirm_fullname(call):
@@ -377,16 +377,24 @@ def register(bot, history):
         user_states[user_id]["commission"] = commission
         user_states[user_id]["total"] = total
 
-        kb = make_inline_buttons(
-            ("❌ إلغاء", "cancel_company"),
-            ("✏️ تعديل", "edit_final_company"),
-            ("✔️ تأكيد", "send_request_company")
-        )
-user_id = call.from_user.id
-state = user_states.get(user_id, {})
-amount = state.get("amount", 0)
-receiver_name = state.get("fullname", "")
-receiver_phone = state.get("phone", "")
+ @bot.callback_query_handler(func=lambda call: call.data == "send_request_company")
+def send_request_company(call):
+    kb = make_inline_buttons(
+        ("❌ إلغاء", "cancel_company"),
+        ("✏️ تعديل", "edit_final_company"),
+        ("✔️ تأكيد", "send_request_company")
+    )
+    user_id = call.from_user.id
+    state = user_states.get(user_id, {})
+    amount = state.get("amount", 0)
+    receiver_name = state.get("fullname", "")
+    receiver_phone = state.get("phone", "")
+    bot.send_message(
+        call.message.chat.id,
+        f"""🟢 هل أنت متأكد من إرسال حوالة مالية قدرها {amount:,} ل.س
+للمستلم {receiver_name} (رقم: {receiver_phone})؟""",
+        reply_markup=kb
+    )
 
 print("===> user state:", state)
 
