@@ -383,7 +383,7 @@ def register(bot, history):
             ("✔️ تأكيد", "send_request_company")
         )
 
-        bot.send_message(
+      bot.send_message(
     call.message.chat.id,
     f"""🟢 هل أنت متأكد من إرسال حوالة مالية قدرها {amount:,} ل.س
     للمستلم {receiver_name} (رقم: {receiver_phone})؟"""
