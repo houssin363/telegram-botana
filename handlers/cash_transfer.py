@@ -176,7 +176,7 @@ def register(bot, history):
 
     # ========== منطق قبول/رفض الأدمن (كاش) ==========
     @bot.callback_query_handler(func=lambda call: call.data.startswith("admin_cash_accept_"))
-def admin_accept_cash_transfer(call):
+    def admin_accept_cash_transfer(call):
     try:
         parts = call.data.split("_")
         user_id = int(parts[-2])
