@@ -17,12 +17,16 @@ def calculate_commission(amount):
         commission += int(COMMISSION_PER_50000 * (remainder / 50000))
     return commission
 
+def add_history_entry(history, user_id, entry):
+    if not isinstance(history.setdefault(user_id, []), list):
+        history[user_id] = []
+    history[user_id].append(entry)
+
 def start_cash_transfer(bot, message, history=None):
     user_id = message.from_user.id
     register_user_if_not_exist(user_id)
     if history is not None:
-        history.setdefault(user_id, []).append("cash_menu")
-
+        add_history_entry(history, user_id, "cash_menu")
     bot.send_message(message.chat.id, "📤 اختر نوع التحويل من محفظتك:", reply_markup=keyboards.cash_transfer_menu())
 
 def make_inline_buttons(*buttons):
@@ -43,6 +47,7 @@ def register(bot, history):
         "تحويل إلى أم تي إن كاش"
     ])
     def handle_cash_type(msg):
+        print("زر تم الضغط عليه:", msg.text)  # للتشخيص فقط
         user_id = msg.from_user.id
         # استخراج نوع الكاش بشكل ديناميكي من نص الزر:
         if "سيرياتيل" in msg.text:
@@ -54,7 +59,7 @@ def register(bot, history):
         else:
             cash_type = msg.text
         user_states[user_id] = {"step": "show_commission", "cash_type": cash_type}
-        history.setdefault(user_id, []).append("cash_menu")
+        add_history_entry(history, user_id, "cash_menu")
 
         text = (
             "⚠️ تنويه:\n"
