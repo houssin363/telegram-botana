@@ -47,14 +47,23 @@ def recharge_menu():
     return markup
 
 def cash_transfer_menu():
-    return recharge_menu()
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup.add(
+        types.KeyboardButton("📲 سيرياتيل كاش"),
+        types.KeyboardButton("📲 أم تي إن كاش"),
+        types.KeyboardButton("📲 شام كاش"),
+        types.KeyboardButton("⬅️ رجوع"),
+        types.KeyboardButton("🔄 ابدأ من جديد")
+    )
+    return markup
 
 def syrian_balance_menu():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
     markup.add(
         types.KeyboardButton("رصيد سيرياتيل وحدات"),
-        types.KeyboardButton("رصيد أم تي أن وحدات"),
+        types.KeyboardButton("رصيد أم تي إن وحدات"),
         types.KeyboardButton("⬅️ رجوع"),
+        types.KeyboardButton("🔄 ابدأ من جديد")
     )
     return markup
 
