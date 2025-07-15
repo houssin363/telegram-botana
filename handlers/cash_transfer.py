@@ -363,7 +363,7 @@ def register(bot, history):
         user_id = call.from_user.id
         user_states[user_id]["step"] = "amount_company"
         bot.send_message(call.message.chat.id, "💸 أعد إدخال المبلغ:")
-
+    
     @bot.callback_query_handler(func=lambda call: call.data == "confirm_amount_company")
     def confirm_amount(call):
         user_id = call.from_user.id
@@ -376,30 +376,33 @@ def register(bot, history):
         total = amount + commission
         user_states[user_id]["commission"] = commission
         user_states[user_id]["total"] = total
-@bot.callback_query_handler(func=lambda call: call.data == "send_request_company")
-def send_request_company(call):
-    kb = make_inline_buttons(
-        ("❌ إلغاء", "cancel_company"),
-        ("✏️ تعديل", "edit_final_company"),
-        ("✔️ تأكيد", "send_request_company")
-    )
-    user_id = call.from_user.id
-    state = user_states.get(user_id, {})
-    amount = state.get("amount", 0)
-    receiver_name = state.get("fullname", "")
-    receiver_phone = state.get("phone", "")
-    bot.send_message(
-        call.message.chat.id,
-        f"""🟢 هل أنت متأكد من إرسال حوالة مالية قدرها {amount:,} ل.س
-للمستلم {receiver_name} (رقم: {receiver_phone})؟""",
-        reply_markup=kb
-    )
 
-print("===> user state:", state)
+        kb = make_inline_buttons(
+            ("❌ إلغاء", "cancel_company"),
+            ("✏️ تعديل", "edit_final_company"),
+            ("✔️ تأكيد", "send_request_company")
+        )
+        bot.send_message(
+            call.message.chat.id,
+            f"""🟢 هل أنت متأكد من إرسال حوالة مالية قدرها {amount:,} ل.س
+للمستلم {fullname} (رقم: {phone})؟""",
+            reply_markup=kb
+        )
+        print("===> user state:", state)
+    
+    @bot.callback_query_handler(func=lambda call: call.data == "send_request_company")
+    def send_request_company(call):
+        user_id = call.from_user.id
+        state = user_states.get(user_id, {})
+        amount = state.get("amount", 0)
+        receiver_name = state.get("fullname", "")
+        receiver_phone = state.get("phone", "")
 
-bot.send_message(
-    call.message.chat.id,
-    f"""🟢 هل أنت متأكد من إرسال حوالة مالية قدرها {amount:,} ل.س
-    للمستلم {receiver_name} (رقم: {receiver_phone})؟"""
-)
+        # هنا ترسل الرسالة للادمن أو تكمل الخطوات المنطقية حسب تطبيقك
+        bot.send_message(
+            call.message.chat.id,
+            f"""🟢 تم إرسال حوالة مالية قدرها {amount:,} ل.س
+للمستلم {receiver_name} (رقم: {receiver_phone})!"""
+        )
+
 
