@@ -161,6 +161,48 @@ def handle_media(msg):
     from handlers.media_services import show_media_services
     show_media_services(bot, msg, user_state)
 
+# ================== أزرار الشركات الجديدة ======================
+@bot.message_handler(func=lambda msg: msg.text == "شركة الهرم")
+def handle_al_haram(msg):
+    bot.send_message(
+        msg.chat.id,
+        "💸 هذه الخدمة تخولك إلى استلام حوالتك المالية عبر **شركة الهرم**.\n"
+        "يتم إضافة مبلغ 1500 ل.س على كل 50000 ل.س.\n\n"
+        "تابع العملية أو ألغِ الطلب.",
+        reply_markup=telebot.types.ReplyKeyboardMarkup(resize_keyboard=True).add(
+            "✔️ تأكيد حوالة الهرم", "❌ إلغاء"
+        )
+    )
+    user_state[msg.from_user.id] = "alharam_start"
+
+@bot.message_handler(func=lambda msg: msg.text == "شركة الفؤاد")
+def handle_alfouad(msg):
+    bot.send_message(
+        msg.chat.id,
+        "💸 هذه الخدمة تخولك إلى استلام حوالتك المالية عبر **شركة الفؤاد**.\n"
+        "يتم إضافة مبلغ 1500 ل.س على كل 50000 ل.س.\n\n"
+        "تابع العملية أو ألغِ الطلب.",
+        reply_markup=telebot.types.ReplyKeyboardMarkup(resize_keyboard=True).add(
+            "✔️ تأكيد حوالة الفؤاد", "❌ إلغاء"
+        )
+    )
+    user_state[msg.from_user.id] = "alfouad_start"
+
+@bot.message_handler(func=lambda msg: msg.text == "شركة شخاشير")
+def handle_shakhashir(msg):
+    bot.send_message(
+        msg.chat.id,
+        "💸 هذه الخدمة تخولك إلى استلام حوالتك المالية عبر **شركة شخاشير**.\n"
+        "يتم إضافة مبلغ 1500 ل.س على كل 50000 ل.س.\n\n"
+        "تابع العملية أو ألغِ الطلب.",
+        reply_markup=telebot.types.ReplyKeyboardMarkup(resize_keyboard=True).add(
+            "✔️ تأكيد حوالة شخاشير", "❌ إلغاء"
+        )
+    )
+    user_state[msg.from_user.id] = "shakhashir_start"
+
+# لاحقاً: يمكنك ربط بقية خطوات الحوالة بنفس منطق الـuser_state
+
 # ---------------------------------------------------------
 # 7) تشغيل البوت
 # ---------------------------------------------------------
