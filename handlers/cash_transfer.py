@@ -365,7 +365,7 @@ def register(bot, history):
         bot.send_message(call.message.chat.id, "💸 أعد إدخال المبلغ:")
     
     @bot.callback_query_handler(func=lambda call: call.data == "confirm_amount_company")
-def confirm_amount(call):
+    def confirm_amount(call):
     user_id = call.from_user.id
     state = user_states.get(user_id, {})
     company = state.get("company", "")
