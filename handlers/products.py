@@ -7,6 +7,15 @@ from services.wallet_service import register_user_if_not_exist, get_balance, ded
 # استدعاء عميل supabase
 from database.db import client
 
+# ============= إضافة لمسح الطلب المعلق للعميل =============
+def clear_pending_request(user_id):
+    try:
+        from handlers.recharge import recharge_pending
+        recharge_pending.discard(user_id)
+    except Exception:
+        pass
+# =========================================================
+
 # منتجات مقسمة حسب التصنيفات
 PRODUCTS = {
     "PUBG": [
