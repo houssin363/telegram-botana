@@ -5,6 +5,7 @@ from config import ADMIN_MAIN_ID
 from services.wallet_service import has_sufficient_balance, deduct_balance
 from handlers.wallet import register_user_if_not_exist
 from handlers import keyboards
+import logging
 
 user_states = {}
 
@@ -112,22 +113,25 @@ def register(bot, history):
         user_id = call.from_user.id
         state = user_states.get(user_id, {})
         total = state.get("total")
-        # تحقق من الرصيد
+
+        # تأكد من الرصيد قبل إرسال الطلب للإدارة
         if not has_sufficient_balance(user_id, total):
             kb = make_inline_buttons(
                 ("💳 شحن المحفظة", "recharge_wallet"),
                 ("⬅️ رجوع", "cash_cancel")
             )
-            bot.send_message(call.message.chat.id, f"❌ لا يوجد رصيد كافٍ في محفظتك.\n💡 الرجاء شحن المحفظة بمبلغ {total:,} ل.س أو أكثر لإتمام العملية.", reply_markup=kb)
+            bot.send_message(
+                call.message.chat.id,
+                f"❌ لا يوجد رصيد كافٍ في محفظتك.\n💡 الرجاء شحن المحفظة بمبلغ {total:,} ل.س أو أكثر لإتمام العملية.",
+                reply_markup=kb
+            )
             return
 
-        # خصم الرصيد من المحفظة فورًا
-        deduct_balance(user_id, total)
-        # رسالة ملخص للعميل
+        # لا تخصم الرصيد هنا!
+        # أرسل الطلب للإدارة مع أزرار قبول/رفض
         bot.edit_message_text("✅ تم إرسال طلبك بانتظار موافقة الإدارة.", call.message.chat.id, call.message.message_id)
-        # رسالة للإدارة مع أزرار قبول/رفض
         kb_admin = make_inline_buttons(
-            ("✅ قبول", f"admin_cash_accept_{user_id}"),
+            ("✅ قبول", f"admin_cash_accept_{user_id}_{total}"),
             ("❌ رفض", f"admin_cash_reject_{user_id}")
         )
         message = (
@@ -146,5 +150,47 @@ def register(bot, history):
     def show_recharge_methods(call):
         bot.send_message(call.message.chat.id, "💳 اختر طريقة شحن المحفظة:", reply_markup=keyboards.recharge_menu())
 
-    # يمكنك لاحقًا إضافة منطق القبول والرفض للإدارة عبر callback_data "admin_cash_accept_*" و"admin_cash_reject_*"
+    # ========== منطق قبول/رفض الأدمن ==========
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("admin_cash_accept_"))
+    def admin_accept_cash_transfer(call):
+        try:
+            parts = call.data.split("_")
+            user_id = int(parts[-2])
+            total = int(parts[-1])
 
+            # تحقق من رصيد العميل لحظة التنفيذ!
+            if not has_sufficient_balance(user_id, total):
+                bot.send_message(user_id, f"❌ فشل تحويل الكاش: لا يوجد رصيد كافٍ في محفظتك.")
+                bot.answer_callback_query(call.id, "❌ لا يوجد رصيد كافٍ لدى العميل.")
+                bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+                bot.send_message(call.message.chat.id, f"❌ لا يوجد رصيد كافٍ لدى العميل `{user_id}`.", parse_mode="Markdown")
+                return
+
+            deduct_balance(user_id, total)
+            bot.send_message(user_id, "✅ تم خصم المبلغ وتحويل الكاش بنجاح (موافقة الإدارة).")
+            bot.answer_callback_query(call.id, "✅ تم قبول الطلب")
+            bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+            bot.send_message(call.message.chat.id, f"✅ تم قبول طلب الكاش وتم خصم المبلغ من المستخدم `{user_id}`", parse_mode="Markdown")
+        except Exception as e:
+            logging.exception("❌ خطأ عند قبول طلب كاش من الأدمن:")
+            bot.send_message(call.message.chat.id, f"❌ حدث خطأ: {e}")
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("admin_cash_reject_"))
+    def admin_reject_cash_transfer(call):
+        try:
+            user_id = int(call.data.split("_")[-1])
+            bot.send_message(call.message.chat.id, "📝 اكتب سبب الرفض:")
+            bot.register_next_step_handler_by_chat_id(
+                call.message.chat.id,
+                lambda m: process_cash_rejection(m, user_id, call),
+            )
+        except Exception as e:
+            logging.exception("❌ خطأ عند رفض طلب كاش من الأدمن:")
+            bot.send_message(call.message.chat.id, f"❌ حدث خطأ: {e}")
+
+    def process_cash_rejection(msg, user_id, call):
+        reason = msg.text.strip()
+        bot.send_message(user_id, f"❌ تم رفض طلب تحويل الكاش من الإدارة.\n📝 السبب: {reason}")
+        bot.answer_callback_query(call.id, "❌ تم رفض الطلب")
+        bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+        bot.send_message(call.message.chat.id, f"❌ تم رفض طلب الكاش للمستخدم `{user_id}`", parse_mode="Markdown")
