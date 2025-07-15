@@ -6,6 +6,15 @@ import logging          # ← إضافة لتسجيل الأخطاء في Render
 import json
 import os
 
+# ============= إضافة لمسح الطلب المعلق للعميل =============
+def clear_pending_request(user_id):
+    try:
+        from handlers.recharge import recharge_pending
+        recharge_pending.discard(user_id)
+    except Exception:
+        pass
+# =========================================================
+
 # ملف تخزين عمليات الأكواد السرّية
 SECRET_CODES_FILE = "data/secret_codes.json"
 os.makedirs("data", exist_ok=True)
@@ -41,6 +50,9 @@ def register(bot, history):
             register_user_if_not_exist(user_id)
             add_balance(user_id, amount)
 
+            # 🟢 حذف الطلب المعلق من قائمة المعلقين بعد التنفيذ
+            clear_pending_request(user_id)
+
             bot.send_message(user_id, f"✅ تم إضافة {amount:,} ل.س إلى محفظتك بنجاح.")
             bot.answer_callback_query(call.id, "✅ تمت الموافقة")
             bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
@@ -68,6 +80,8 @@ def register(bot, history):
         bot.send_message(user_id, f"❌ تم رفض عملية الشحن.\n📝 السبب: {reason}")
         bot.answer_callback_query(call.id, "❌ تم رفض العملية")
         bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+        # 🟢 حذف الطلب المعلق بعد الرفض
+        clear_pending_request(user_id)
 
     # ---------- تقرير الأكواد السرّية ----------
     @bot.message_handler(commands=["تقرير_الوكلاء"])
