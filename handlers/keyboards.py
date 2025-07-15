@@ -24,15 +24,6 @@ def products_menu():
     )
     return markup
 
-def syrian_balance_menu():
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    markup.add(
-        types.KeyboardButton("رصيد سيرياتيل وحدات"),
-        types.KeyboardButton("رصيد أم تي إن وحدات"),
-        types.KeyboardButton("⬅️ رجوع")
-    )
-    return markup
-
 def game_categories():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
     markup.add(
@@ -59,11 +50,11 @@ def cash_transfer_menu():
     return recharge_menu()
 
 def syrian_balance_menu():
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
     markup.add(
         types.KeyboardButton("رصيد سيرياتيل وحدات"),
-        types.KeyboardButton("رصيد أم تي إن وحدات"),
-        types.KeyboardButton("⬅️ رجوع")
+        types.KeyboardButton("رصيد أم تي أن وحدات"),
+        types.KeyboardButton("⬅️ رجوع"),
     )
     return markup
 
