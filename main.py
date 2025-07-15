@@ -55,7 +55,10 @@ from handlers import (
     products,
     media_services,
     wholesale,
-    syr_units,  # تسجيل وحدات سورية
+    syr_units,
+    mtn_units,
+    university_fees,
+    internet_providers,
 )
 from handlers.keyboards import (
     main_menu,
@@ -76,7 +79,7 @@ from handlers.keyboards import (
 user_state: dict[int, str] = {}
 
 # ---------------------------------------------------------
-# 4) تسجيل الهاندلرز مع تمرير user_state للتتبع
+# 4) تسجيل جميع الهاندلرز (بدون تغيير أي شيء في القائمة الرئيسية)
 # ---------------------------------------------------------
 start.register(bot, user_state)
 wallet.register(bot, user_state)
@@ -88,14 +91,18 @@ products.register(bot, user_state)
 media_services.register(bot, user_state)
 wholesale.register(bot, user_state)
 syr_units.register(bot, user_state)
+mtn_units.register(bot) # هام للمنتجات MTN
+university_fees.register(bot)
+internet_providers.register(bot)
 
 # ---------------------------------------------------------
 # 4.1) ربط النظام الجديد لأوامر المنتجات (لا تحذف هذا السطر)
 # ---------------------------------------------------------
-ADMIN_IDS = [6935846121]  # ضع هنا آيدي الأدمنات الذين يستلمون الطلبات (يمكنك إضافة أكثر من آيدي)
+ADMIN_IDS = [6935846121]
 products.setup_inline_handlers(bot, ADMIN_IDS)
+
 # ---------------------------------------------------------
-# 5) زر الرجوع الذكي
+# 5) زر الرجوع الذكي (ابقِه كما هو بدون تعديل)
 # ---------------------------------------------------------
 @bot.message_handler(func=lambda msg: msg.text == "⬅️ رجوع")
 def handle_back(msg):
@@ -121,7 +128,41 @@ def handle_back(msg):
         user_state[user_id] = "main_menu"
 
 # ---------------------------------------------------------
-# 6) تشغيل البوت
+# 6) ربط أزرار المنتجات بالخدمات الخاصة بها
+# ---------------------------------------------------------
+@bot.message_handler(func=lambda msg: msg.text == "💵 شراء رصيد كاش")
+def handle_cash_transfer(msg):
+    from handlers.cash_transfer import start_cash_transfer
+    start_cash_transfer(bot, msg, user_state)
+
+@bot.message_handler(func=lambda msg: msg.text == "💳 تحويل رصيد سوري")
+def handle_syrian_units(msg):
+    from handlers.syr_units import start_syriatel_menu
+    start_syriatel_menu(bot, msg)
+
+@bot.message_handler(func=lambda msg: msg.text == "🌐 دفع مزودات الإنترنت ADSL")
+def handle_internet(msg):
+    from handlers.internet_providers import start_internet_provider_menu
+    start_internet_provider_menu(bot, msg)
+
+@bot.message_handler(func=lambda msg: msg.text == "🎓 دفع رسوم جامعية")
+def handle_university_fees(msg):
+    from handlers.university_fees import start_university_fee
+    start_university_fee(bot, msg)
+
+@bot.message_handler(func=lambda msg: msg.text in [
+    "🖼️ تصميم لوغو احترافي",
+    "📱 إدارة ونشر يومي",
+    "📢 إطلاق حملة إعلانية",
+    "🧾 باقة متكاملة شهرية",
+    "✏️ طلب مخصص"
+])
+def handle_media(msg):
+    from handlers.media_services import show_media_services
+    show_media_services(bot, msg, user_state)
+
+# ---------------------------------------------------------
+# 7) تشغيل البوت
 # ---------------------------------------------------------
 print("🤖 البوت يعمل الآن…")
 
@@ -132,10 +173,9 @@ try:
         long_polling_timeout=40,
     )
 except telebot.apihelper.ApiTelegramException as e:
-    # خطأ 409 = نسخة أخرى من البوت متصلة بالفعل
     if getattr(e, "error_code", None) == 409:
         logging.critical("❌ تم إيقاف هذه النسخة لأن نسخة أخرى من البوت متصلة بالفعل.")
     else:
-        # أعد رفع الخطأ لتعرف المشكلات الأخرى
         raise
+
 import scheduled_tasks  # لإطلاق المهام الدورية تلقائيًا عند تشغيل البوت
