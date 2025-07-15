@@ -199,7 +199,7 @@ def register(bot, history):
             bot.send_message(call.message.chat.id, f"❌ حدث خطأ: {e}")
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("admin_cash_reject_"))
-def admin_reject_cash_transfer(call):
+    def admin_reject_cash_transfer(call):
     try:
         user_id = int(call.data.split("_")[-1])
         bot.send_message(call.message.chat.id, "📝 اكتب سبب الرفض أو أرسل صورة:")
