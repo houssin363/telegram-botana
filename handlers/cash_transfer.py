@@ -183,35 +183,33 @@ def register(bot, history):
             total = int(parts[-1])
 
             if not has_sufficient_balance(user_id, total):
-            bot.send_message(user_id, f"❌ فشل تحويل الكاش: لا يوجد رصيد كافٍ في محفظتك.")
-            bot.answer_callback_query(call.id, "❌ لا يوجد رصيد كافٍ لدى العميل.")
+                bot.send_message(user_id, f"❌ فشل تحويل الكاش: لا يوجد رصيد كافٍ في محفظتك.")
+                bot.answer_callback_query(call.id, "❌ لا يوجد رصيد كافٍ لدى العميل.")
+                bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+                bot.send_message(call.message.chat.id, f"❌ لا يوجد رصيد كافٍ لدى العميل `{user_id}`.", parse_mode="Markdown")
+                return
+
+            deduct_balance(user_id, total)
+            bot.send_message(user_id, "✅ تم خصم المبلغ وتحويل الكاش بنجاح (موافقة الإدارة).")
+            bot.answer_callback_query(call.id, "✅ تم قبول الطلب")
             bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
-            bot.send_message(call.message.chat.id, f"❌ لا يوجد رصيد كافٍ لدى العميل `{user_id}`.", parse_mode="Markdown")
-            return
+            bot.send_message(call.message.chat.id, f"✅ تم قبول طلب الكاش وتم خصم المبلغ من المستخدم `{user_id}`", parse_mode="Markdown")
+        except Exception as e:
+            logging.exception("❌ خطأ عند قبول طلب كاش من الأدمن:")
+            bot.send_message(call.message.chat.id, f"❌ حدث خطأ: {e}")
 
-        deduct_balance(user_id, total)
-        bot.send_message(user_id, "✅ تم خصم المبلغ وتحويل الكاش بنجاح (موافقة الإدارة).")
-        bot.answer_callback_query(call.id, "✅ تم قبول الطلب")
-        bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
-        bot.send_message(call.message.chat.id, f"✅ تم قبول طلب الكاش وتم خصم المبلغ من المستخدم `{user_id}`", parse_mode="Markdown")
-    except Exception as e:
-        logging.exception("❌ خطأ عند قبول طلب كاش من الأدمن:")
-        bot.send_message(call.message.chat.id, f"❌ حدث خطأ: {e}")
-
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith("admin_cash_reject_"))
-def admin_reject_cash_transfer(call):
-    try:
-        user_id = int(call.data.split("_")[-1])
-        bot.send_message(call.message.chat.id, "📝 اكتب سبب الرفض أو أرسل صورة:")
-        bot.register_next_step_handler_by_chat_id(
-            call.message.chat.id,
-            lambda m: process_cash_rejection(m, user_id, call),
-        )
-    except Exception as e:
-        logging.exception("❌ خطأ عند رفض طلب كاش من الأدمن:")
-        bot.send_message(call.message.chat.id, f"❌ حدث خطأ: {e}")
-
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("admin_cash_reject_"))
+    def admin_reject_cash_transfer(call):
+        try:
+            user_id = int(call.data.split("_")[-1])
+            bot.send_message(call.message.chat.id, "📝 اكتب سبب الرفض أو أرسل صورة:")
+            bot.register_next_step_handler_by_chat_id(
+                call.message.chat.id,
+                lambda m: process_cash_rejection(m, user_id, call),
+            )
+        except Exception as e:
+            logging.exception("❌ خطأ عند رفض طلب كاش من الأدمن:")
+            bot.send_message(call.message.chat.id, f"❌ حدث خطأ: {e}")
 
 def process_cash_rejection(msg, user_id, call):
     try:
@@ -374,7 +372,7 @@ def process_cash_rejection(msg, user_id, call):
         bot.send_message(call.message.chat.id, "💸 أعد إدخال المبلغ:")
 
     @bot.callback_query_handler(func=lambda call: call.data == "confirm_amount_company")
-    def confirm_amount(call):   # بدون أي مسافة زائدة هنا
+    def confirm_amount(call):
         user_id = call.from_user.id
         state = user_states.get(user_id, {})
         company = state.get("company", "")
@@ -387,9 +385,9 @@ def process_cash_rejection(msg, user_id, call):
         user_states[user_id]["total"] = total
 
         kb = make_inline_buttons(
-        ("❌ إلغاء", "cancel_company"),
-        ("✏️ تعديل", "edit_final_company"),
-        ("✔️ تأكيد", "send_request_company")
+            ("❌ إلغاء", "cancel_company"),
+            ("✏️ تعديل", "edit_final_company"),
+            ("✔️ تأكيد", "send_request_company")
         )
         bot.send_message(
             call.message.chat.id,
@@ -399,5 +397,3 @@ def process_cash_rejection(msg, user_id, call):
             f"✅ الإجمالي: {total:,} ل.س",
             reply_markup=kb
         )
-
-
