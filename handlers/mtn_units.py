@@ -3,7 +3,6 @@ from database.models.product import Product
 from services.wallet_service import has_sufficient_balance, deduct_balance
 from config import ADMIN_MAIN_ID
 
-# منتجات MTN وحدات
 MTN_PRODUCTS = [
     Product(2001, "1000 وحدة", "MTN", 1200),
     Product(2002, "5000 وحدة", "MTN", 6000),
@@ -35,7 +34,7 @@ def start_mtn_units_menu(bot, message):
 
 def register(bot, user_state):
     @bot.message_handler(func=lambda msg: msg.text == "رصيد أم تي إن وحدات")
-    def menu_handler(msg):
+    def show_mtn_units_menu(msg):
         start_mtn_units_menu(bot, msg)
 
     @bot.message_handler(func=lambda msg: msg.text in [f"{p.name} - {p.price:,} ل.س" for p in MTN_PRODUCTS])
@@ -44,6 +43,7 @@ def register(bot, user_state):
         selected = next(p for p in MTN_PRODUCTS if f"{p.name} - {p.price:,} ل.س" == msg.text)
         user_mtn_states[user_id] = {"step": "enter_number", "product": selected}
         kb = types.InlineKeyboardMarkup()
+        kb.add(types.InlineKeyboardButton("✔️ تأكيد", callback_data="mtn_confirm"))
         kb.add(types.InlineKeyboardButton("⬅️ رجوع", callback_data="mtn_back"))
         bot.send_message(msg.chat.id, "📲 أدخل الرقم أو الكود (يبدأ بـ 094 أو 095 أو 096):", reply_markup=kb)
 
@@ -89,6 +89,5 @@ def register(bot, user_state):
             "✅ تم إرسال الطلب إلى الإدارة، بانتظار المعالجة.",
             call.message.chat.id, call.message.message_id
         )
-
     # تحديث حالة العودة
     user_state.update({uid: "products_menu" for uid in user_mtn_states})
