@@ -365,26 +365,28 @@ def register(bot, history):
         bot.send_message(call.message.chat.id, "💸 أعد إدخال المبلغ:")
     
     @bot.callback_query_handler(func=lambda call: call.data == "confirm_amount_company")
-    def confirm_amount(call):
-        user_id = call.from_user.id
-        state = user_states.get(user_id, {})
-        company = state.get("company", "")
-        fullname = state.get("fullname", "")
-        phone = state.get("phone", "")
-        amount = state.get("amount", 0)
-        commission = calculate_commission(amount, COMPANY_COMMISSION)
-        total = amount + commission
-        user_states[user_id]["commission"] = commission
-        user_states[user_id]["total"] = total
+def confirm_amount(call):
+    user_id = call.from_user.id
+    state = user_states.get(user_id, {})
+    company = state.get("company", "")
+    fullname = state.get("fullname", "")
+    phone = state.get("phone", "")
+    amount = state.get("amount", 0)
+    commission = calculate_commission(amount, COMPANY_COMMISSION)
+    total = amount + commission
+    user_states[user_id]["commission"] = commission
+    user_states[user_id]["total"] = total
 
-        kb = make_inline_buttons(
-            ("❌ إلغاء", "cancel_company"),
-            ("✏️ تعديل", "edit_final_company"),
-            ("✔️ تأكيد", "send_request_company")
-        )
-        bot.send_message(
-            call.message.chat.id,
-            f"""🟢 هل أنت متأكد من إرسال حوالة مالية قدرها {amount:,} ل.س
-للمستلم {fullname} (رقم: {phone})؟\n\n"
-            f"🧾 العمولة: {commission:,} ل.س\n"
-            f"✅ الإجمالي: {total
+    kb = make_inline_buttons(
+        ("❌ إلغاء", "cancel_company"),
+        ("✏️ تعديل", "edit_final_company"),
+        ("✔️ تأكيد", "send_request_company")
+    )
+    bot.send_message(
+        call.message.chat.id,
+        f"""🟢 هل أنت متأكد من إرسال حوالة مالية قدرها {amount:,} ل.س
+للمستلم {fullname} (رقم: {phone})؟
+🧾 العمولة: {commission:,} ل.س
+✅ الإجمالي: {total:,} ل.س""",
+        reply_markup=kb
+    )
