@@ -138,7 +138,6 @@ def register(bot, history):
         user_id = call.from_user.id
         state = user_states.get(user_id, {})
         total = state.get("total")
-
         # تأكد من الرصيد قبل إرسال الطلب للإدارة
         if not has_sufficient_balance(user_id, total):
             kb = make_inline_buttons(
@@ -203,7 +202,7 @@ def register(bot, history):
     def admin_reject_cash_transfer(call):
         try:
             user_id = int(call.data.split("_")[-1])
-            bot.send_message(call.message.chat.id, "📝 اكتب سبب الرفض:")
+            bot.send_message(call.message.chat.id, "📝 اكتب سبب الرفض أو أرسل صورة:")
             bot.register_next_step_handler_by_chat_id(
                 call.message.chat.id,
                 lambda m: process_cash_rejection(m, user_id, call),
@@ -213,8 +212,13 @@ def register(bot, history):
             bot.send_message(call.message.chat.id, f"❌ حدث خطأ: {e}")
 
     def process_cash_rejection(msg, user_id, call):
-        reason = msg.text.strip()
-        bot.send_message(user_id, f"❌ تم رفض طلب تحويل الكاش من الإدارة.\n📝 السبب: {reason}")
+        if msg.content_type == "photo":
+            file_id = msg.photo[-1].file_id
+            bot.send_photo(user_id, file_id, caption="❌ تم رفض طلبك من الإدارة. الصورة مرسلة من الدعم.")
+            reason = ""
+        else:
+            reason = msg.text.strip()
+            bot.send_message(user_id, f"❌ تم رفض طلب تحويل الكاش من الإدارة.\n📝 السبب: {reason}")
         bot.answer_callback_query(call.id, "❌ تم رفض الطلب")
         bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
         bot.send_message(call.message.chat.id, f"❌ تم رفض طلب الكاش للمستخدم `{user_id}`", parse_mode="Markdown")
@@ -264,10 +268,6 @@ def register(bot, history):
     def company_confirmed(call):
         user_id = call.from_user.id
         user_states[user_id]["step"] = "fullname_company"
-        kb = make_inline_buttons(
-            ("❌ إلغاء", "cancel_company"),
-            ("✔️ تأكيد", "confirm_fullname_company")
-        )
         bot.edit_message_text(
             "👤 أدخل اسم المستفيد كاملًا (الاسم - الكنية - أبن الأب):",
             call.message.chat.id, call.message.message_id
@@ -385,24 +385,6 @@ def register(bot, history):
         bot.send_message(
             call.message.chat.id,
             f"""🟢 هل أنت متأكد من إرسال حوالة مالية قدرها {amount:,} ل.س
-للمستلم {fullname} (رقم: {phone})؟""",
-            reply_markup=kb
-        )
-        print("===> user state:", state)
-    
-    @bot.callback_query_handler(func=lambda call: call.data == "send_request_company")
-    def send_request_company(call):
-        user_id = call.from_user.id
-        state = user_states.get(user_id, {})
-        amount = state.get("amount", 0)
-        receiver_name = state.get("fullname", "")
-        receiver_phone = state.get("phone", "")
-
-        # هنا ترسل الرسالة للادمن أو تكمل الخطوات المنطقية حسب تطبيقك
-        bot.send_message(
-            call.message.chat.id,
-            f"""🟢 تم إرسال حوالة مالية قدرها {amount:,} ل.س
-للمستلم {receiver_name} (رقم: {receiver_phone})!"""
-        )
-
-
+للمستلم {fullname} (رقم: {phone})؟\n\n"
+            f"🧾 العمولة: {commission:,} ل.س\n"
+            f"✅ الإجمالي: {total
