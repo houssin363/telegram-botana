@@ -199,28 +199,36 @@ def register(bot, history):
             bot.send_message(call.message.chat.id, f"❌ حدث خطأ: {e}")
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("admin_cash_reject_"))
-    def admin_reject_cash_transfer(call):
-        try:
-            user_id = int(call.data.split("_")[-1])
-            bot.send_message(call.message.chat.id, "📝 اكتب سبب الرفض أو أرسل صورة:")
-            bot.register_next_step_handler_by_chat_id(
-                call.message.chat.id,
-                lambda m: process_cash_rejection(m, user_id, call),
-            )
-        except Exception as e:
-            logging.exception("❌ خطأ عند رفض طلب كاش من الأدمن:")
-            bot.send_message(call.message.chat.id, f"❌ حدث خطأ: {e}")
+def admin_reject_cash_transfer(call):
+    try:
+        user_id = int(call.data.split("_")[-1])
+        bot.send_message(call.message.chat.id, "📝 اكتب سبب الرفض أو أرسل صورة:")
+        bot.register_next_step_handler_by_chat_id(
+            call.message.chat.id,
+            lambda m: process_cash_rejection(m, user_id, call),
+        )
+    except Exception as e:
+        logging.exception("❌ خطأ عند رفض طلب كاش من الأدمن:")
+        bot.send_message(call.message.chat.id, f"❌ حدث خطأ: {e}")
 
-    def process_cash_rejection(msg, user_id, call):
+def process_cash_rejection(msg, user_id, call):
+    try:
         if msg.content_type == "photo":
             file_id = msg.photo[-1].file_id
-            bot.send_photo(user_id, file_id, caption="❌ تم رفض طلبك من الإدارة. الصورة مرسلة من الدعم.")
+            caption = "❌ تم رفض طلبك من الإدارة."
+            if msg.caption:
+                caption += f"\n📝 السبب: {msg.caption}"
+            bot.send_photo(user_id, file_id, caption=caption)
         else:
-            reason = msg.text.strip()
+            reason = msg.text.strip() if msg.text else "بدون سبب"
             bot.send_message(user_id, f"❌ تم رفض طلب تحويل الكاش من الإدارة.\n📝 السبب: {reason}")
+
         bot.answer_callback_query(call.id, "❌ تم رفض الطلب")
         bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
         bot.send_message(call.message.chat.id, f"❌ تم رفض طلب الكاش للمستخدم `{user_id}`", parse_mode="Markdown")
+    except Exception as ex:
+        logging.exception("❌ خطأ في process_cash_rejection:")
+        bot.send_message(call.message.chat.id, f"❌ حدث خطأ أثناء إرسال سبب الرفض: {ex}")
 
     # ========== حوالة مالية عبر شركات ==========
     @bot.message_handler(func=lambda msg: msg.text == "حوالة مالية عبر شركات")
@@ -376,18 +384,18 @@ def register(bot, history):
         user_states[user_id]["commission"] = commission
         user_states[user_id]["total"] = total
 
-    kb = make_inline_buttons(
+        kb = make_inline_buttons(
         ("❌ إلغاء", "cancel_company"),
         ("✏️ تعديل", "edit_final_company"),
         ("✔️ تأكيد", "send_request_company")
-    )
-    bot.send_message(
-        call.message.chat.id,
-        f"🟢 هل أنت متأكد من إرسال حوالة مالية قدرها {amount:,} ل.س\n"
-        f"للمستلم {fullname} (رقم: {phone})؟\n"
-        f"🧾 العمولة: {commission:,} ل.س\n"
-        f"✅ الإجمالي: {total:,} ل.س",
-        reply_markup=kb
-    )
+        )
+        bot.send_message(
+            call.message.chat.id,
+            f"🟢 هل أنت متأكد من إرسال حوالة مالية قدرها {amount:,} ل.س\n"
+            f"للمستلم {fullname} (رقم: {phone})؟\n"
+            f"🧾 العمولة: {commission:,} ل.س\n"
+            f"✅ الإجمالي: {total:,} ل.س",
+            reply_markup=kb
+        )
 
 
