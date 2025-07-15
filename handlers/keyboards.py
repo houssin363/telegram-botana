@@ -1,4 +1,3 @@
-# handlers/keyboards.py
 from telebot import types
 
 def main_menu():
@@ -8,9 +7,8 @@ def main_menu():
         types.KeyboardButton("💳 شحن محفظتي"),
         types.KeyboardButton("💰 محفظتي"),
         types.KeyboardButton("🛠️ الدعم الفني"),
-        types.KeyboardButton("🖼️ خدمات إعلانية وتصميم"),
-        types.KeyboardButton("🌐 صفحتنا"),
-        types.KeyboardButton("🔄 ابدأ من جديد")
+        types.KeyboardButton("🔄 ابدأ من جديد"),
+        types.KeyboardButton("🌐 صفحتنا")
     )
     return markup
 
@@ -22,7 +20,6 @@ def products_menu():
         types.KeyboardButton("💳 تحويل رصيد سوري"),
         types.KeyboardButton("🌐 دفع مزودات الإنترنت ADSL"),
         types.KeyboardButton("🎓 دفع رسوم جامعية"),
-        types.KeyboardButton("🖼️ خدمات إعلانية وتصميم"),
         types.KeyboardButton("⬅️ رجوع")
     )
     return markup
@@ -50,7 +47,15 @@ def recharge_menu():
     return markup
 
 def cash_transfer_menu():
-    return recharge_menu()
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup.add(
+        types.KeyboardButton("تحويل إلى سيرياتيل كاش"),
+        types.KeyboardButton("تحويل إلى شام كاش"),
+        types.KeyboardButton("تحويل إلى أم تي إن كاش"),
+        types.KeyboardButton("⬅️ رجوع"),
+        types.KeyboardButton("🔄 ابدأ من جديد")
+    )
+    return markup
 
 def syrian_balance_menu():
     from handlers.syr_units import SYRIATEL_PRODUCTS
@@ -80,6 +85,16 @@ def support_menu():
     )
     return markup
 
+def links_menu():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup.add(
+        types.KeyboardButton("🌐 موقعنا"),
+        types.KeyboardButton("📘 فيس بوك"),
+        types.KeyboardButton("📸 إنستغرام"),
+        types.KeyboardButton("⬅️ رجوع")
+    )
+    return markup
+
 def media_services_menu():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
     markup.add(
@@ -87,17 +102,8 @@ def media_services_menu():
         types.KeyboardButton("📱 إدارة ونشر يومي"),
         types.KeyboardButton("📢 إطلاق حملة إعلانية"),
         types.KeyboardButton("🧾 باقة متكاملة شهرية"),
-        types.KeyboardButton("✏️ طلب مخصّص"),
+        types.KeyboardButton("✏️ طلب مخصص"),
         types.KeyboardButton("⬅️ رجوع")
-    )
-    return markup
-
-def links_menu():
-    # قائمة الروابط (تظهر بأزرار قابلة للضغط تفتح المتصفح)
-    markup = types.InlineKeyboardMarkup()
-    markup.add(
-        types.InlineKeyboardButton("🌐 موقعنا الرسمي", url="https://example.com"),
-        types.InlineKeyboardButton("📢 قناتنا على تيليجرام", url="https://t.me/YourChannel")
     )
     return markup
 
