@@ -8,9 +8,9 @@ def main_menu():
         types.KeyboardButton("💳 شحن محفظتي"),
         types.KeyboardButton("💰 محفظتي"),
         types.KeyboardButton("🛠️ الدعم الفني"),
-        types.KeyboardButton("🖼️ خدمات إعلانية وتصميم"),  # ← added
-        types.KeyboardButton("🔄 ابدأ من جديد"),
-        types.KeyboardButton("🌐 صفحتنا")
+        types.KeyboardButton("🖼️ خدمات إعلانية وتصميم"),
+        types.KeyboardButton("🌐 صفحتنا"),
+        types.KeyboardButton("🔄 ابدأ من جديد")
     )
     return markup
 
@@ -22,7 +22,7 @@ def products_menu():
         types.KeyboardButton("💳 تحويل رصيد سوري"),
         types.KeyboardButton("🌐 دفع مزودات الإنترنت ADSL"),
         types.KeyboardButton("🎓 دفع رسوم جامعية"),
-        types.KeyboardButton("🖼️ خدمات إعلانية وتصميم"),  # ← added
+        types.KeyboardButton("🖼️ خدمات إعلانية وتصميم"),
         types.KeyboardButton("⬅️ رجوع")
     )
     return markup
@@ -50,7 +50,6 @@ def recharge_menu():
     return markup
 
 def cash_transfer_menu():
-    # still just reuse recharge_menu
     return recharge_menu()
 
 def syrian_balance_menu():
@@ -88,8 +87,17 @@ def media_services_menu():
         types.KeyboardButton("📱 إدارة ونشر يومي"),
         types.KeyboardButton("📢 إطلاق حملة إعلانية"),
         types.KeyboardButton("🧾 باقة متكاملة شهرية"),
-        types.KeyboardButton("✏️ طلب مخصص"),
+        types.KeyboardButton("✏️ طلب مخصّص"),
         types.KeyboardButton("⬅️ رجوع")
+    )
+    return markup
+
+def links_menu():
+    # قائمة الروابط (تظهر بأزرار قابلة للضغط تفتح المتصفح)
+    markup = types.InlineKeyboardMarkup()
+    markup.add(
+        types.InlineKeyboardButton("🌐 موقعنا الرسمي", url="https://example.com"),
+        types.InlineKeyboardButton("📢 قناتنا على تيليجرام", url="https://t.me/YourChannel")
     )
     return markup
 
