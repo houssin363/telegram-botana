@@ -48,6 +48,12 @@ def get_method_instructions(method):
         text = "حدث خطأ في تحديد طريقة الشحن."
     return text
 
+# === الدوال المساعدة المهمة ===
+def clear_pending_request(user_id):
+    """احذف بيانات طلب الشحن من pending & requests."""
+    recharge_pending.discard(user_id)
+    recharge_requests.pop(user_id, None)
+
 # ✅ عرض قائمة طرق الشحن
 def start_recharge_menu(bot, message, history=None):
     if history:
@@ -100,7 +106,7 @@ def register(bot, history):
                 reply_markup=keyboards.recharge_menu()
             )
         else:
-            recharge_requests.pop(user_id, None)
+            clear_pending_request(user_id)
             bot.send_message(
                 call.message.chat.id,
                 "❌ تم إلغاء العملية. يمكنك البدء من جديد.",
@@ -227,8 +233,7 @@ def register(bot, history):
             bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
 
         elif call.data == "user_cancel_recharge":
-            recharge_requests.pop(user_id, None)
-            recharge_pending.discard(user_id)
+            clear_pending_request(user_id)
             bot.send_message(
                 user_id,
                 "❌ تم إلغاء الطلب، يمكنك البدء من جديد.",
