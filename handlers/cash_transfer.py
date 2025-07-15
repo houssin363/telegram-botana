@@ -215,7 +215,6 @@ def register(bot, history):
         if msg.content_type == "photo":
             file_id = msg.photo[-1].file_id
             bot.send_photo(user_id, file_id, caption="❌ تم رفض طلبك من الإدارة. الصورة مرسلة من الدعم.")
-            reason = ""
         else:
             reason = msg.text.strip()
             bot.send_message(user_id, f"❌ تم رفض طلب تحويل الكاش من الإدارة.\n📝 السبب: {reason}")
@@ -262,7 +261,7 @@ def register(bot, history):
         user_id = call.from_user.id
         user_states.pop(user_id, None)
         bot.edit_message_text("تم الإلغاء، عدت إلى القائمة.", call.message.chat.id, call.message.message_id)
-        # ضع هنا قائمة المنتجات أو الرئيسية حسب نظامك
+        # يمكنك إعادة المستخدم لقائمة المنتجات هنا إن أحببت
 
     @bot.callback_query_handler(func=lambda call: call.data == "confirm_company")
     def company_confirmed(call):
@@ -363,30 +362,27 @@ def register(bot, history):
         user_id = call.from_user.id
         user_states[user_id]["step"] = "amount_company"
         bot.send_message(call.message.chat.id, "💸 أعد إدخال المبلغ:")
-    
+
     @bot.callback_query_handler(func=lambda call: call.data == "confirm_amount_company")
     def confirm_amount(call):
         user_id = call.from_user.id
-    state = user_states.get(user_id, {})
-    company = state.get("company", "")
-    fullname = state.get("fullname", "")
-    phone = state.get("phone", "")
-    amount = state.get("amount", 0)
-    commission = calculate_commission(amount, COMPANY_COMMISSION)
-    total = amount + commission
-    user_states[user_id]["commission"] = commission
-    user_states[user_id]["total"] = total
+        state = user_states.get(user_id, {})
+        company = state.get("company", "")
+        fullname = state.get("fullname", "")
+        phone = state.get("phone", "")
+        amount = state.get("amount", 0)
+        commission = calculate_commission(amount, COMPANY_COMMISSION)
+        total = amount + commission
+        user_states[user_id]["commission"] = commission
+        user_states[user_id]["total"] = total
 
-    kb = make_inline_buttons(
-        ("❌ إلغاء", "cancel_company"),
-        ("✏️ تعديل", "edit_final_company"),
-        ("✔️ تأكيد", "send_request_company")
-    )
-    bot.send_message(
-        call.message.chat.id,
-        f"""🟢 هل أنت متأكد من إرسال حوالة مالية قدرها {amount:,} ل.س
+        kb = make_inline_buttons(
+            ("❌ إلغاء", "cancel_company"),
+            ("✏️ تعديل", "edit_final_company"),
+            ("✔️ تأكيد", "send_request_company")
+        )
+        bot.send_message(
+            call.message.chat.id,
+            f"""🟢 هل أنت متأكد من إرسال حوالة مالية قدرها {amount:,} ل.س
 للمستلم {fullname} (رقم: {phone})؟
-🧾 العمولة: {commission:,} ل.س
-✅ الإجمالي: {total:,} ل.س""",
-        reply_markup=kb
-    )
+🧾
