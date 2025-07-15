@@ -16,9 +16,12 @@ MTN_PRODUCTS = [
     Product(2008, "30000 وحدة", "MTN", 36000),
     Product(2009, "36000 وحدة", "MTN", 43200),
 ]
+
+# حالة المستخدم في سير عمل MTN
 user_mtn_states = {}
 
 def start_mtn_menu(bot, message):
+    """عرض قائمة منتجات MTN للمستخدم"""
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
     for product in MTN_PRODUCTS:
         markup.add(types.KeyboardButton(f"{product.name} - {product.price:,} ل.س"))
@@ -26,9 +29,12 @@ def start_mtn_menu(bot, message):
     bot.send_message(message.chat.id, "📲 اختر كمية الوحدات من MTN:", reply_markup=markup)
     user_mtn_states[message.from_user.id] = {"step": "select_product"}
 
-def register(bot):
+def register(bot, user_state):
+    """ربط أزرار تحويل رصيد MTN ببوت تيليجرام"""
     @bot.message_handler(func=lambda msg: msg.text == "💳 تحويل رصيد ام تي ان")
     def open_mtn_menu(msg):
+        user_id = msg.from_user.id
+        user_state[user_id] = "mtn_transfer"           # تعيين الحالة الرئيسية
         start_mtn_menu(bot, msg)
 
     @bot.message_handler(func=lambda msg: user_mtn_states.get(msg.from_user.id, {}).get("step") == "select_product")
@@ -46,19 +52,28 @@ def register(bot):
         user_id = msg.from_user.id
         number = msg.text.strip()
         state = user_mtn_states[user_id]
-        state["number"] = number
         product = state["product"]
+
         if not has_sufficient_balance(user_id, product.price):
             bot.send_message(msg.chat.id, "❌ لا يوجد رصيد كافٍ في محفظتك.")
             user_mtn_states.pop(user_id, None)
             return
+
+        # خصم الرصيد
         deduct_balance(user_id, product.price)
+
+        # تحضير رسالة للإدارة
         admin_msg = (
-            f"📥 طلب جديد من {user_id}\n"
+            f"📥 طلب جديد من المستخدم {user_id}\n"
             f"👤 المنتج: {product.name} ({product.price:,} ل.س)\n"
             f"📞 الرقم: {number}\n"
-            f"📦 النوع: رصيد أم تي أن وحدات"
+            f"📦 النوع: رصيد MTN وحدات"
         )
         bot.send_message(ADMIN_MAIN_ID, admin_msg)
+
+        # تأكيد للمستخدم
         bot.send_message(msg.chat.id, "✅ تم إرسال الطلب إلى الإدارة، بانتظار المعالجة.")
+
+        # تنظيف الحالة وإرجاع المستخدم للقائمة الرئيسية للمنتجات
         user_mtn_states.pop(user_id, None)
+        user_state[user_id] = "products_menu"
