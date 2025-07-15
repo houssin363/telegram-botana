@@ -21,7 +21,9 @@ def start_cash_transfer(bot, message, history=None):
     user_id = message.from_user.id
     register_user_if_not_exist(user_id)
     if history is not None:
-        history.setdefault(user_id, []).append("cash_menu")
+       if not isinstance(history.setdefault(user_id, []), list):
+    history[user_id] = []
+history[user_id].append("wallet")
 
     bot.send_message(message.chat.id, "📤 اختر نوع التحويل من محفظتك:", reply_markup=keyboards.cash_transfer_menu())
 
