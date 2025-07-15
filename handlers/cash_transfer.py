@@ -382,9 +382,17 @@ def register(bot, history):
             ("✏️ تعديل", "edit_final_company"),
             ("✔️ تأكيد", "send_request_company")
         )
+user_id = call.from_user.id
+state = user_states.get(user_id, {})
+amount = state.get("amount", 0)
+receiver_name = state.get("fullname", "")
+receiver_phone = state.get("phone", "")
 
-        bot.send_message(
+print("===> user state:", state)
+
+bot.send_message(
     call.message.chat.id,
     f"""🟢 هل أنت متأكد من إرسال حوالة مالية قدرها {amount:,} ل.س
     للمستلم {receiver_name} (رقم: {receiver_phone})؟"""
 )
+
