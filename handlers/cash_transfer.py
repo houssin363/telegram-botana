@@ -1,6 +1,6 @@
 from telebot import types
 from config import ADMIN_MAIN_ID
-from handlers.wallet import register_user_if_not_exist, get_balance, deduct_balance
+from services.wallet_service import register_user_if_not_exist, get_balance, deduct_balance
 from handlers import keyboards
 
 user_states = {}
