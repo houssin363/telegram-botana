@@ -2,6 +2,7 @@ from telebot import types
 from config import ADMIN_MAIN_ID
 from handlers import keyboards  # ✅ الكيبورد الموحد
 from services.wallet_service import register_user_if_not_exist  # ✅ الاستيراد الجديد
+from types import SimpleNamespace  # 🔴 التصحيح هنا
 
 recharge_requests = {}
 recharge_pending = set()
@@ -17,7 +18,7 @@ def get_method_instructions(method):
         text = (
             "📲 *سيرياتيل كاش*\n"
             "حول المبلغ إلى أحد الأرقام التالية عبر (الدفع اليدوي):\n"
-            f"🔢 {'   -   '.join(SYRIATEL_NUMBERS)}\n"
+            f"🔢 {'   -   '.join(f'`{num}`' for num in SYRIATEL_NUMBERS)}\n"
             "⚠️ لسنا مسؤولين عن تحويل الوحدات (انتبه للتعليمات)\n\n"
             "يمكنك نسخ الرقم المطلوب بسهولة."
         )
@@ -25,7 +26,7 @@ def get_method_instructions(method):
         text = (
             "📲 *أم تي إن كاش*\n"
             "حول المبلغ إلى أحد الأرقام التالية عبر (الدفع اليدوي):\n"
-            f"🔢 {'   -   '.join(MTN_NUMBERS)}\n"
+            f"🔢 {'   -   '.join(f'`{num}`' for num in MTN_NUMBERS)}\n"
             "⚠️ لسنا مسؤولين عن تحويل الوحدات (انتبه للتعليمات)\n\n"
             "يمكنك نسخ الرقم المطلوب بسهولة."
         )
@@ -33,14 +34,14 @@ def get_method_instructions(method):
         text = (
             "📲 *شام كاش*\n"
             "حول المبلغ إلى أحد الأكواد التالية:\n"
-            f"🔢 {'   -   '.join(SHAMCASH_CODES)}\n"
+            f"🔢 {'   -   '.join(f'`{code}`' for code in SHAMCASH_CODES)}\n"
             "يمكنك نسخ الكود المطلوب بسهولة."
         )
     elif method == "Payeer":
         text = (
             "💳 *Payeer*\n"
             "حول المبلغ إلى الكود التالي:\n"
-            f"🔢 {'   -   '.join(PAYEER_CODES)}\n"
+            f"🔢 {'   -   '.join(f'`{code}`' for code in PAYEER_CODES)}\n"
             "يمكنك نسخ الكود بسهولة."
         )
     else:
@@ -234,10 +235,10 @@ def register(bot, history):
                 reply_markup=keyboards.recharge_menu()
             )
             # العودة لاختيار طريقة الشحن من جديد
-            fake_msg = types.SimpleNamespace()
-            fake_msg.from_user = types.SimpleNamespace()
+            fake_msg = SimpleNamespace()
+            fake_msg.from_user = SimpleNamespace()
             fake_msg.from_user.id = user_id
-            fake_msg.chat = types.SimpleNamespace()
+            fake_msg.chat = SimpleNamespace()
             fake_msg.chat.id = user_id
             start_recharge_menu(bot, fake_msg, history)
             bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
