@@ -20,6 +20,10 @@ def products_menu():
         types.KeyboardButton("💳 تحويل رصيد سوري"),
         types.KeyboardButton("🌐 دفع مزودات الإنترنت ADSL"),
         types.KeyboardButton("🎓 دفع رسوم جامعية"),
+        # أزرار الشركات الجديدة
+        types.KeyboardButton("شركة الهرم"),
+        types.KeyboardButton("شركة الفؤاد"),
+        types.KeyboardButton("شركة شخاشير"),
         types.KeyboardButton("⬅️ رجوع")
     )
     return markup
@@ -52,6 +56,8 @@ def cash_transfer_menu():
         types.KeyboardButton("تحويل إلى سيرياتيل كاش"),
         types.KeyboardButton("تحويل إلى أم تي إن كاش"),
         types.KeyboardButton("تحويل إلى شام كاش"),
+        # إضافة زر الحوالات المالية عبر الشركات الجديدة
+        types.KeyboardButton("حوالة مالية عبر شركات"),
         types.KeyboardButton("⬅️ رجوع"),
         types.KeyboardButton("🔄 ابدأ من جديد")
     )
