@@ -1,3 +1,4 @@
+# handlers/keyboards.py
 from telebot import types
 
 def main_menu():
@@ -7,6 +8,7 @@ def main_menu():
         types.KeyboardButton("💳 شحن محفظتي"),
         types.KeyboardButton("💰 محفظتي"),
         types.KeyboardButton("🛠️ الدعم الفني"),
+        types.KeyboardButton("🖼️ خدمات إعلانية وتصميم"),  # ← added
         types.KeyboardButton("🔄 ابدأ من جديد"),
         types.KeyboardButton("🌐 صفحتنا")
     )
@@ -20,6 +22,7 @@ def products_menu():
         types.KeyboardButton("💳 تحويل رصيد سوري"),
         types.KeyboardButton("🌐 دفع مزودات الإنترنت ADSL"),
         types.KeyboardButton("🎓 دفع رسوم جامعية"),
+        types.KeyboardButton("🖼️ خدمات إعلانية وتصميم"),  # ← added
         types.KeyboardButton("⬅️ رجوع")
     )
     return markup
@@ -47,24 +50,15 @@ def recharge_menu():
     return markup
 
 def cash_transfer_menu():
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
-    markup.add(
-        types.KeyboardButton("📲 سيرياتيل كاش"),
-        types.KeyboardButton("📲 أم تي إن كاش"),
-        types.KeyboardButton("📲 شام كاش"),
-        types.KeyboardButton("⬅️ رجوع"),
-        types.KeyboardButton("🔄 ابدأ من جديد")
-    )
-    return markup
+    # still just reuse recharge_menu
+    return recharge_menu()
 
 def syrian_balance_menu():
+    from handlers.syr_units import SYRIATEL_PRODUCTS
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
-    markup.add(
-        types.KeyboardButton("رصيد سيرياتيل وحدات"),
-        types.KeyboardButton("رصيد أم تي إن وحدات"),
-        types.KeyboardButton("⬅️ رجوع"),
-        types.KeyboardButton("🔄 ابدأ من جديد")
-    )
+    buttons = [types.KeyboardButton(f"{p.name} - {p.price:,} ل.س") for p in SYRIATEL_PRODUCTS]
+    buttons.append(types.KeyboardButton("⬅️ رجوع"))
+    markup.add(*buttons)
     return markup
 
 def wallet_menu():
@@ -83,16 +77,6 @@ def support_menu():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
     markup.add(
         types.KeyboardButton("🛠️ الدعم الفني"),
-        types.KeyboardButton("⬅️ رجوع")
-    )
-    return markup
-
-def links_menu():
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
-    markup.add(
-        types.KeyboardButton("🌐 موقعنا"),
-        types.KeyboardButton("📘 فيس بوك"),
-        types.KeyboardButton("📸 إنستغرام"),
         types.KeyboardButton("⬅️ رجوع")
     )
     return markup
