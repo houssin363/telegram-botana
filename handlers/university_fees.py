@@ -25,19 +25,19 @@ def register(bot):
 
     @bot.message_handler(func=lambda msg: user_uni_state.get(msg.from_user.id, {}).get("step") == "university_name")
     def enter_university(msg):
-        # ... your existing code for university_name step
+        pass  # هنا ضع الكود الحقيقي أو استخدم pass مؤقتًا
 
     @bot.message_handler(func=lambda msg: user_uni_state.get(msg.from_user.id, {}).get("step") == "national_id")
     def enter_national_id(msg):
-        # ... your existing code for national_id step
+        pass
 
     @bot.message_handler(func=lambda msg: user_uni_state.get(msg.from_user.id, {}).get("step") == "university_id")
     def enter_university_id(msg):
-        # ... your existing code for university_id step
+        pass
 
     @bot.message_handler(func=lambda msg: user_uni_state.get(msg.from_user.id, {}).get("step") == "amount")
     def enter_amount(msg):
-        # ... your existing code for amount step
+        pass
 
     @bot.callback_query_handler(func=lambda call: call.data == "uni_cancel")
     def cancel_uni(call):
