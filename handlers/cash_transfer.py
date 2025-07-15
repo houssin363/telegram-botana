@@ -200,7 +200,7 @@ def register(bot, history):
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("admin_cash_reject_"))
     def admin_reject_cash_transfer(call):
-    try:
+        try:
         user_id = int(call.data.split("_")[-1])
         bot.send_message(call.message.chat.id, "📝 اكتب سبب الرفض أو أرسل صورة:")
         bot.register_next_step_handler_by_chat_id(
@@ -212,7 +212,7 @@ def register(bot, history):
         bot.send_message(call.message.chat.id, f"❌ حدث خطأ: {e}")
 
     def process_cash_rejection(msg, user_id, call):
-    try:
+        try:
         if msg.content_type == "photo":
             file_id = msg.photo[-1].file_id
             caption = "❌ تم رفض طلبك من الإدارة."
