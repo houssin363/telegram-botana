@@ -211,7 +211,7 @@ def register(bot, history):
         logging.exception("❌ خطأ عند رفض طلب كاش من الأدمن:")
         bot.send_message(call.message.chat.id, f"❌ حدث خطأ: {e}")
 
-def process_cash_rejection(msg, user_id, call):
+    def process_cash_rejection(msg, user_id, call):
     try:
         if msg.content_type == "photo":
             file_id = msg.photo[-1].file_id
