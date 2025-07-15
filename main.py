@@ -4,6 +4,23 @@ import logging
 import telebot
 from config import API_TOKEN
 
+# =============== Dummy HTTP Server to Open Port ================
+import threading
+import http.server
+import socketserver
+
+PORT = 10000
+
+def run_dummy_server():
+    handler = http.server.SimpleHTTPRequestHandler
+    with socketserver.TCPServer(("", PORT), handler) as httpd:
+        print(f"🔌 Dummy server listening on port {PORT}")
+        httpd.serve_forever()
+
+# شغل الخادم في ثريد منفصل حتى لا يوقف البوت الأساسي
+threading.Thread(target=run_dummy_server, daemon=True).start()
+# ===============================================================
+
 # ---------------------------------------------------------
 # تسجيل الأخطاء لظهورها في سجلّ Render
 # ---------------------------------------------------------
