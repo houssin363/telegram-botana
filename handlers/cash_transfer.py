@@ -178,9 +178,9 @@ def register(bot, history):
     @bot.callback_query_handler(func=lambda call: call.data.startswith("admin_cash_accept_"))
     def admin_accept_cash_transfer(call):
         try:
-        parts = call.data.split("_")
-        user_id = int(parts[-2])
-        total = int(parts[-1])
+            parts = call.data.split("_")
+            user_id = int(parts[-2])
+            total = int(parts[-1])
 
         if not has_sufficient_balance(user_id, total):
             bot.send_message(user_id, f"❌ فشل تحويل الكاش: لا يوجد رصيد كافٍ في محفظتك.")
