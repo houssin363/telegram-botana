@@ -91,7 +91,7 @@ products.register(bot, user_state)
 media_services.register(bot, user_state)
 wholesale.register(bot, user_state)
 syr_units.register(bot, user_state)
-mtn_units.register(bot) # هام للمنتجات MTN
+mtn_units.register(bot, user_state)
 university_fees.register(bot)
 internet_providers.register(bot)
 
