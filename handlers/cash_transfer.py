@@ -376,8 +376,7 @@ def register(bot, history):
         total = amount + commission
         user_states[user_id]["commission"] = commission
         user_states[user_id]["total"] = total
-
- @bot.callback_query_handler(func=lambda call: call.data == "send_request_company")
+@bot.callback_query_handler(func=lambda call: call.data == "send_request_company")
 def send_request_company(call):
     kb = make_inline_buttons(
         ("❌ إلغاء", "cancel_company"),
