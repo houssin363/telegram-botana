@@ -55,7 +55,8 @@ from handlers import (
     products,
     media_services,
     wholesale,
-    syr_units,  # تسجيل وحدات سورية
+    syr_units,    # تسجيل وحدات سيرياتيل
+    mtn_units     # تسجيل وحدات MTN
 )
 from handlers.keyboards import (
     main_menu,
@@ -88,6 +89,7 @@ products.register(bot, user_state)
 media_services.register(bot, user_state)
 wholesale.register(bot, user_state)
 syr_units.register(bot, user_state)
+mtn_units.register(bot, user_state)  # <-- أضف هذا السطر هنا
 
 # ---------------------------------------------------------
 # 4.1) ربط النظام الجديد لأوامر المنتجات (لا تحذف هذا السطر)
