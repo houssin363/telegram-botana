@@ -23,7 +23,7 @@ MTN_PRODUCTS = [
 
 user_mtn_states = {}
 
-def start_mtn_units_menu(bot, message):
+def start_mtn_menu(bot, message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     for product in MTN_PRODUCTS:
         btn = types.KeyboardButton(f"{product.name} - {product.price:,} ل.س")
@@ -33,24 +33,16 @@ def start_mtn_units_menu(bot, message):
     user_mtn_states[message.from_user.id] = {"step": "select_product"}
 
 def register(bot, user_state):
-    @bot.message_handler(func=lambda msg: msg.text == "رصيد أم تي إن وحدات")
-    def show_mtn_units_menu(msg):
-        start_mtn_units_menu(bot, msg)
+    @bot.message_handler(func=lambda msg: msg.text == "رصيد أم تي أن وحدات")
+    def open_mtn_menu(msg):
+        start_mtn_menu(bot, msg)
 
     @bot.message_handler(func=lambda msg: msg.text in [f"{p.name} - {p.price:,} ل.س" for p in MTN_PRODUCTS])
     def select_mtn_product(msg):
         user_id = msg.from_user.id
         selected = next(p for p in MTN_PRODUCTS if f"{p.name} - {p.price:,} ل.س" == msg.text)
         user_mtn_states[user_id] = {"step": "enter_number", "product": selected}
-        kb = types.InlineKeyboardMarkup()
-        kb.add(types.InlineKeyboardButton("✔️ تأكيد", callback_data="mtn_confirm"))
-        kb.add(types.InlineKeyboardButton("⬅️ رجوع", callback_data="mtn_back"))
-        bot.send_message(msg.chat.id, "📲 أدخل الرقم أو الكود (يبدأ بـ 094 أو 095 أو 096):", reply_markup=kb)
-
-    @bot.callback_query_handler(func=lambda call: call.data == "mtn_back")
-    def back_to_menu(call):
-        start_mtn_units_menu(bot, call.message)
-        bot.delete_message(call.message.chat.id, call.message.message_id)
+        bot.send_message(msg.chat.id, "📲 أدخل الرقم أو الكود الذي يبدأ بـ 094 أو 095 أو 096:")
 
     @bot.message_handler(func=lambda msg: user_mtn_states.get(msg.from_user.id, {}).get("step") == "enter_number")
     def enter_mtn_number(msg):
@@ -61,12 +53,17 @@ def register(bot, user_state):
         product = state["product"]
         kb = types.InlineKeyboardMarkup()
         kb.add(types.InlineKeyboardButton("✔️ تأكيد", callback_data="mtn_confirm"))
-        kb.add(types.InlineKeyboardButton("⬅️ رجوع", callback_data="mtn_back"))
+        kb.add(types.InlineKeyboardButton("❌ إلغاء", callback_data="mtn_cancel"))
         bot.send_message(
             msg.chat.id,
             f"❓ هل أنت متأكد من شراء {product.name} مقابل {product.price:,} ل.س؟\nالرقم: {number}",
             reply_markup=kb
         )
+
+    @bot.callback_query_handler(func=lambda call: call.data == "mtn_cancel")
+    def cancel_mtn_order(call):
+        user_mtn_states.pop(call.from_user.id, None)
+        bot.edit_message_text("🚫 تم إلغاء العملية.", call.message.chat.id, call.message.message_id)
 
     @bot.callback_query_handler(func=lambda call: call.data == "mtn_confirm")
     def confirm_mtn_order(call):
@@ -83,11 +80,9 @@ def register(bot, user_state):
             f"📥 طلب جديد من {user_id}\n"
             f"👤 المنتج: {product.name} ({product.price:,} ل.س)\n"
             f"📞 الرقم: {number}\n"
-            f"📦 النوع: رصيد أم تي إن وحدات"
+            f"📦 النوع: رصيد أم تي أن وحدات"
         )
         bot.edit_message_text(
             "✅ تم إرسال الطلب إلى الإدارة، بانتظار المعالجة.",
             call.message.chat.id, call.message.message_id
         )
-    # تحديث حالة العودة
-    user_state.update({uid: "products_menu" for uid in user_mtn_states})
