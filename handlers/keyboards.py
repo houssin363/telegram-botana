@@ -50,11 +50,12 @@ def cash_transfer_menu():
     return recharge_menu()
 
 def syrian_balance_menu():
-    from handlers.syr_units import SYRIATEL_PRODUCTS
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
-    buttons = [types.KeyboardButton(f"{p.name} - {p.price:,} ل.س") for p in SYRIATEL_PRODUCTS]
-    buttons.append(types.KeyboardButton("⬅️ رجوع"))
-    markup.add(*buttons)
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(
+        types.KeyboardButton("رصيد سيرياتيل وحدات"),
+        types.KeyboardButton("رصيد أم تي إن وحدات"),
+        types.KeyboardButton("⬅️ رجوع")
+    )
     return markup
 
 def wallet_menu():
@@ -63,7 +64,6 @@ def wallet_menu():
         types.KeyboardButton("💰 محفظتي"),
         types.KeyboardButton("🛍️ مشترياتي"),
         types.KeyboardButton("📑 سجل التحويلات"),
-        # هذا هو النص الكامل الذي يطابق الهاندلر:
         types.KeyboardButton("🔁 تحويل من محفظتك إلى محفظة عميل آخر"),
         types.KeyboardButton("⬅️ رجوع"),
         types.KeyboardButton("🔄 ابدأ من جديد")
