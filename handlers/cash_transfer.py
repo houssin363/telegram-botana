@@ -366,7 +366,7 @@ def register(bot, history):
     
     @bot.callback_query_handler(func=lambda call: call.data == "confirm_amount_company")
     def confirm_amount(call):
-    user_id = call.from_user.id
+        user_id = call.from_user.id
     state = user_states.get(user_id, {})
     company = state.get("company", "")
     fullname = state.get("fullname", "")
