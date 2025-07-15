@@ -365,16 +365,16 @@ def register(bot, history):
 
     @bot.callback_query_handler(func=lambda call: call.data == "confirm_amount_company")
     def confirm_amount(call):   # بدون أي مسافة زائدة هنا
-    user_id = call.from_user.id
-    state = user_states.get(user_id, {})
-    company = state.get("company", "")
-    fullname = state.get("fullname", "")
-    phone = state.get("phone", "")
-    amount = state.get("amount", 0)
-    commission = calculate_commission(amount, COMPANY_COMMISSION)
-    total = amount + commission
-    user_states[user_id]["commission"] = commission
-    user_states[user_id]["total"] = total
+        user_id = call.from_user.id
+        state = user_states.get(user_id, {})
+        company = state.get("company", "")
+        fullname = state.get("fullname", "")
+        phone = state.get("phone", "")
+        amount = state.get("amount", 0)
+        commission = calculate_commission(amount, COMPANY_COMMISSION)
+        total = amount + commission
+        user_states[user_id]["commission"] = commission
+        user_states[user_id]["total"] = total
 
     kb = make_inline_buttons(
         ("❌ إلغاء", "cancel_company"),
