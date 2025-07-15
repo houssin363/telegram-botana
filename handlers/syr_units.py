@@ -23,21 +23,31 @@ SYRIATEL_PRODUCTS = [
 
 user_syr_states = {}
 
-def start_syriatel_menu(bot, message):
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    for product in SYRIATEL_PRODUCTS:
-        btn = types.KeyboardButton(f"{product.name} - {product.price:,} ل.س")
-        markup.add(btn)
-    markup.add(types.KeyboardButton("⬅️ رجوع"))
-    bot.send_message(message.chat.id, "📦 اختر الكمية:", reply_markup=markup)
-    user_syr_states[message.from_user.id] = {"step": "select_product"}
-
 def register(bot, user_state):
-    @bot.message_handler(func=lambda msg: msg.text == "رصيد سيرياتيل وحدات")
-    def open_syriatel_menu(msg):
-        start_syriatel_menu(bot, msg)
+    @bot.message_handler(func=lambda msg: msg.text == "💳 تحويل رصيد سوري")
+    def open_syrian_menu(msg):
+        user_id = msg.from_user.id
+        user_syr_states[user_id] = {"step": "main_menu"}
+        bot.send_message(
+            msg.chat.id,
+            "اختر نوع الرصيد السوري:",
+            reply_markup=types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+            .add(types.KeyboardButton("رصيد سيرياتيل وحدات"), types.KeyboardButton("رصيد أم تي إن وحدات"), types.KeyboardButton("⬅️ رجوع"))
+        )
+        user_state[user_id] = "syrian_transfer"
 
-    @bot.message_handler(func=lambda msg: msg.text in [f"{p.name} - {p.price:,} ل.س" for p in SYRIATEL_PRODUCTS])
+    @bot.message_handler(func=lambda msg: msg.text == "رصيد سيرياتيل وحدات")
+    def start_syriatel_menu(msg):
+        user_id = msg.from_user.id
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+        for product in SYRIATEL_PRODUCTS:
+            btn = types.KeyboardButton(f"{product.name} - {product.price:,} ل.س")
+            markup.add(btn)
+        markup.add(types.KeyboardButton("⬅️ رجوع"))
+        bot.send_message(msg.chat.id, "📦 اختر الكمية:", reply_markup=markup)
+        user_syr_states[user_id] = {"step": "select_product"}
+
+    @bot.message_handler(func=lambda msg: user_syr_states.get(msg.from_user.id, {}).get("step") == "select_product" and "سيرياتيل" in msg.text)
     def select_syriatel_product(msg):
         user_id = msg.from_user.id
         selected = next(p for p in SYRIATEL_PRODUCTS if f"{p.name} - {p.price:,} ل.س" == msg.text)
@@ -53,12 +63,19 @@ def register(bot, user_state):
         product = state["product"]
         kb = types.InlineKeyboardMarkup()
         kb.add(types.InlineKeyboardButton("✔️ تأكيد", callback_data="syr_confirm"))
+        kb.add(types.InlineKeyboardButton("✏️ تعديل", callback_data="syr_edit"))
         kb.add(types.InlineKeyboardButton("❌ إلغاء", callback_data="syr_cancel"))
         bot.send_message(
             msg.chat.id,
             f"❓ هل أنت متأكد من شراء {product.name} مقابل {product.price:,} ل.س؟\nالرقم: {number}",
             reply_markup=kb
         )
+
+    @bot.callback_query_handler(func=lambda call: call.data == "syr_edit")
+    def edit_syr(call):
+        user_id = call.from_user.id
+        user_syr_states[user_id]["step"] = "enter_number"
+        bot.edit_message_text("📲 أعد إدخال الرقم أو الكود الجديد:", call.message.chat.id, call.message.message_id)
 
     @bot.callback_query_handler(func=lambda call: call.data == "syr_cancel")
     def cancel_syr_order(call):
@@ -77,10 +94,11 @@ def register(bot, user_state):
         deduct_balance(user_id, product.price)
         bot.send_message(
             ADMIN_MAIN_ID,
-            f"📥 طلب جديد من {user_id}\n"
+            f"📥 طلب جديد من {call.from_user.full_name} (`{user_id}`)\n"
             f"👤 المنتج: {product.name} ({product.price:,} ل.س)\n"
             f"📞 الرقم: {number}\n"
-            f"📦 النوع: رصيد سيرياتيل وحدات"
+            f"📦 النوع: رصيد سيرياتيل وحدات",
+            parse_mode="Markdown"
         )
         bot.edit_message_text(
             "✅ تم إرسال الطلب إلى الإدارة، بانتظار المعالجة.",
