@@ -384,5 +384,7 @@ def register(bot, history):
         )
 
         bot.send_message(
-            call.message.chat.id,
-            f"🟢 هل أنت متأكد من إرسال حوالة مالية
+    call.message.chat.id,
+    f"""🟢 هل أنت متأكد من إرسال حوالة مالية قدرها {amount:,} ل.س
+    للمستلم {receiver_name} (رقم: {receiver_phone})؟"""
+)
