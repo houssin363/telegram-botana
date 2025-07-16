@@ -20,7 +20,7 @@ def products_menu():
         types.KeyboardButton("🌐 دفع مزودات الإنترنت ADSL"),
         types.KeyboardButton("🎓 دفع رسوم جامعية"),
         types.KeyboardButton("حوالة مالية عبر شركات"),
-        types.KeyboardButton("💵 شراء رصيد كاش"),
+        types.KeyboardButton("💵 تحويل الى رصيد كاش"),
         types.KeyboardButton("⬅️ رجوع")
     )
     return markup
