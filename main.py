@@ -56,8 +56,6 @@ from handlers import (
     products,
     media_services,
     wholesale,
-    syr_units,
-    mtn_units,
     university_fees,
     internet_providers,
     bill_and_units,
@@ -96,8 +94,6 @@ bill_and_units.register_companies_transfer(bot, user_state)
 products.register(bot, user_state)
 media_services.register(bot, user_state)
 wholesale.register(bot, user_state)
-syr_units.register(bot, user_state)
-mtn_units.register(bot, user_state)
 university_fees.register(bot)
 internet_providers.register(bot)
 
