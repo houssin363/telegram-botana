@@ -221,12 +221,12 @@ def register(bot, history):
                     bot.send_photo(user_id, file_id, caption=m.caption or "تمت العملية بنجاح.")
                 else:
                     bot.send_message(user_id, m.text or "تمت العملية بنجاح.")
-           bot.send_message(call.message.chat.id, "📝 أرسل رسالة أو صورة للعميل مع صورة التحويل أو تأكيد العملية.")
-           bot.register_next_step_handler_by_chat_id(call.message.chat.id, forward_admin_message)
-           user_states.pop(user_id, None)
-       except Exception as e:
-           bot.send_message(call.message.chat.id, f"❌ حدث خطأ: {e}")
-        
+            bot.send_message(call.message.chat.id, "📝 أرسل رسالة أو صورة للعميل مع صورة التحويل أو تأكيد العملية.")
+            bot.register_next_step_handler_by_chat_id(call.message.chat.id, forward_admin_message)
+            user_states.pop(user_id, None)
+        except Exception as e:
+            bot.send_message(call.message.chat.id, f"❌ حدث خطأ: {e}")
+         
     @bot.callback_query_handler(func=lambda call: call.data.startswith("admin_cash_accept_"))
     def admin_accept_cash_transfer(call):
         try:
