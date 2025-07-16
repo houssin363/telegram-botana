@@ -346,7 +346,7 @@ def register_bill_and_units(bot, history):
             f"👤 المستخدم: {user_id}\n"
             f"📱 الرقم: {user_states[user_id]['number']}\n"
             f"💵 المبلغ: {user_states[user_id]['amount']:,} ل.س\n"
-            f"🧾 مع العمولة (17%): {total:,} ل.س"
+            f"🧾 مع العمولة : {total:,} ل.س"
         )
         bot.send_message(ADMIN_MAIN_ID, summary, reply_markup=kb_admin)
         bot.send_message(call.message.chat.id, "✅ تم إرسال الطلب إلى الإدارة، بانتظار الموافقة.")
@@ -479,7 +479,7 @@ def register_bill_and_units(bot, history):
             f"👤 المستخدم: {user_id}\n"
             f"📱 الرقم: {user_states[user_id]['number']}\n"
             f"💵 المبلغ: {user_states[user_id]['amount']:,} ل.س\n"
-            f"🧾 مع العمولة (17%): {total:,} ل.س"
+            f"🧾 مع العمولة : {total:,} ل.س"
         )
         bot.send_message(ADMIN_MAIN_ID, summary, reply_markup=kb_admin)
         bot.send_message(call.message.chat.id, "✅ تم إرسال الطلب إلى الإدارة، بانتظار الموافقة.")
