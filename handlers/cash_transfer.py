@@ -5,8 +5,6 @@ from handlers.wallet import register_user_if_not_exist
 from handlers import keyboards
 
 user_states = {}
-user_requests = {}
-pending_cash_requests = set()
 
 COMMISSION_PER_50000 = 3500
 
@@ -118,6 +116,16 @@ def register(bot, history):
         state = user_states[user_id]
         commission = calculate_commission(amount)
         total = amount + commission
+        state["amount"] = amount
+        state["commission"] = commission
+        state["total"] = total
+        state["step"] = "confirming"
+
+        kb = make_inline_buttons(
+            ("❌ إلغاء", "commission_cancel"),
+            ("✏️ تعديل", "edit_amount"),
+            ("✔️ تأكيد", "cash_confirm")
+        )
         summary = (
             f"📤 تأكيد العملية:\n"
             f"📲 الرقم: {state['number']}\n"
@@ -126,17 +134,7 @@ def register(bot, history):
             f"✅ الإجمالي: {total:,} ل.س\n"
             f"💼 الطريقة: {state['cash_type']}"
         )
-
-        kb = make_inline_buttons(
-            ("❌ إلغاء", "commission_cancel"),
-            ("✏️ تعديل", "edit_amount"),
-            ("✔️ تأكيد", "cash_confirm")
-        )
         bot.send_message(msg.chat.id, summary, reply_markup=kb)
-        state["amount"] = amount
-        state["commission"] = commission
-        state["total"] = total
-        state["step"] = "confirming"
 
     @bot.callback_query_handler(func=lambda call: call.data == "edit_amount")
     def edit_amount(call):
@@ -151,9 +149,31 @@ def register(bot, history):
         amount = data.get('amount')
         commission = data.get('commission')
         total = data.get('total')
-        # هنا يمكن فحص الرصيد في المحفظة قبل الإرسال (إن أردت ذلك)
-        bot.edit_message_text("✅ تم إرسال الطلب بنجاح، بانتظار المعالجة من الإدارة.",
-                              call.message.chat.id, call.message.message_id)
+        balance = get_balance(user_id)
+
+        if balance < total:
+            shortage = total - balance
+            kb = make_inline_buttons(
+                ("💳 شحن المحفظة", "recharge_wallet"),
+                ("⬅️ رجوع", "commission_cancel")
+            )
+            bot.edit_message_text(
+                f"❌ لا يوجد رصيد كافٍ في محفظتك.\n"
+                f"الإجمالي المطلوب: {total:,} ل.س\n"
+                f"رصيدك الحالي: {balance:,} ل.س\n"
+                f"المبلغ الناقص: {shortage:,} ل.س\n"
+                "يرجى شحن المحفظة أو العودة.",
+                call.message.chat.id, call.message.message_id,
+                reply_markup=kb
+            )
+            return
+
+        # عند التأكيد: ترسل رسالة للأدمن مع أزرار تأكيد ورفض فقط، ويُبقي بيانات العميل حتى قرار الأدمن
+        user_states[user_id]["step"] = "waiting_admin"
+        kb_admin = make_inline_buttons(
+            ("✅ تأكيد التحويل", f"admin_cash_accept_{user_id}_{total}"),
+            ("❌ رفض التحويل", f"admin_cash_reject_{user_id}")
+        )
         message = (
             f"📤 طلب تحويل كاش جديد:\n"
             f"👤 المستخدم: {user_id}\n"
@@ -161,7 +181,62 @@ def register(bot, history):
             f"💰 المبلغ: {amount:,} ل.س\n"
             f"💼 الطريقة: {data.get('cash_type')}\n"
             f"🧾 العمولة: {commission:,} ل.س\n"
-            f"✅ الإجمالي: {total:,} ل.س"
+            f"✅ الإجمالي: {total:,} ل.س\n\n"
+            f"يمكنك الرد برسالة أو صورة ليصل للعميل."
         )
-        bot.send_message(ADMIN_MAIN_ID, message)
-        user_states.pop(user_id, None)
+        bot.edit_message_text("✅ تم إرسال الطلب، بانتظار موافقة الإدارة.", call.message.chat.id, call.message.message_id)
+        msg_admin = bot.send_message(ADMIN_MAIN_ID, message, reply_markup=kb_admin)
+        # حفظ معرف رسالة الأدمن للرد
+        user_states[user_id]["admin_message_id"] = msg_admin.message_id
+        user_states[user_id]["admin_chat_id"] = ADMIN_MAIN_ID
+
+    @bot.callback_query_handler(func=lambda call: call.data == "recharge_wallet")
+    def show_recharge_methods(call):
+        bot.send_message(call.message.chat.id, "💳 اختر طريقة شحن المحفظة:", reply_markup=keyboards.recharge_menu())
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("admin_cash_accept_"))
+    def admin_accept_cash_transfer(call):
+        try:
+            parts = call.data.split("_")
+            user_id = int(parts[-2])
+            total = int(parts[-1])
+            data = user_states.get(user_id, {})
+            if not has_sufficient_balance(user_id, total):
+                bot.send_message(user_id, f"❌ فشل تحويل الكاش: لا يوجد رصيد كافٍ في محفظتك.")
+                bot.answer_callback_query(call.id, "❌ لا يوجد رصيد كافٍ لدى العميل.")
+                bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+                return
+            deduct_balance(user_id, total)
+            bot.send_message(user_id, "✅ تم خصم المبلغ من محفظتك بنجاح.")
+            bot.answer_callback_query(call.id, "✅ تم قبول الطلب")
+            bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+            # الرد من الأدمن (إذا أرسل صورة أو نص) يصل للعميل
+            def forward_admin_message(m):
+                if m.content_type == "photo":
+                    file_id = m.photo[-1].file_id
+                    bot.send_photo(user_id, file_id, caption=m.caption or "تمت العملية بنجاح.")
+                else:
+                    bot.send_message(user_id, m.text or "تمت العملية بنجاح.")
+            bot.send_message(call.message.chat.id, "📝 أرسل رسالة أو صورة للعميل مع صورة التحويل أو تأكيد العملية.")
+            bot.register_next_step_handler_by_chat_id(call.message.chat.id, forward_admin_message)
+            user_states.pop(user_id, None)
+        except Exception as e:
+            bot.send_message(call.message.chat.id, f"❌ حدث خطأ: {e}")
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("admin_cash_reject_"))
+    def admin_reject_cash_transfer(call):
+        try:
+            user_id = int(call.data.split("_")[-1])
+            def handle_reject(m):
+                txt = m.text if m.content_type == "text" else "❌ تم رفض الطلب."
+                if m.content_type == "photo":
+                    bot.send_photo(user_id, m.photo[-1].file_id, caption=(m.caption or txt))
+                else:
+                    bot.send_message(user_id, f"❌ تم رفض الطلب من الإدارة.\n📝 السبب: {txt}")
+                bot.answer_callback_query(call.id, "❌ تم رفض الطلب")
+                bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+                user_states.pop(user_id, None)
+            bot.send_message(call.message.chat.id, "📝 اكتب سبب الرفض أو أرسل صورة:")
+            bot.register_next_step_handler_by_chat_id(call.message.chat.id, handle_reject)
+        except Exception as e:
+            bot.send_message(call.message.chat.id, f"❌ حدث خطأ: {e}")
