@@ -60,6 +60,7 @@ from handlers import (
     mtn_units,
     university_fees,
     internet_providers,
+    bill_and_units,
 )
 from handlers.keyboards import (
     main_menu,
@@ -72,6 +73,7 @@ from handlers.keyboards import (
     wallet_menu,
     support_menu,
     links_menu,
+    bill_and_units_menu,
     media_services_menu,
 )
 
@@ -90,6 +92,7 @@ admin.register(bot, user_state)
 recharge.register(bot, user_state)
 cash_transfer.register(bot, user_state)
 companies_transfer.register_companies_transfer(bot, user_state)
+bill_and_units.register_companies_transfer(bot, user_state)
 products.register(bot, user_state)
 media_services.register(bot, user_state)
 wholesale.register(bot, user_state)
