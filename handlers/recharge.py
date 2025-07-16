@@ -206,11 +206,10 @@ def register(bot, history):
             )
 
             bot.send_photo(
-                ADMIN_MAIN_ID,
-                photo=data["photo"],
-                caption=caption,
-                parse_mode="Markdown",
-                reply_markup=markup
+            ADMIN_MAIN_ID,
+            photo=data["photo"],
+            caption=caption,
+            reply_markup=markup
             )
             bot.send_message(
                 user_id,
