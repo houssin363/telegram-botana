@@ -201,7 +201,7 @@ def register(bot, history):
             user_id = int(parts[-2])
             total = int(parts[-1])
             data = user_states.get(user_id, {})
-        if not has_sufficient_balance(user_id, total):
+            if not has_sufficient_balance(user_id, total):
             bot.send_message(user_id, f"❌ فشل تحويل الكاش: لا يوجد رصيد كافٍ في محفظتك.")
             bot.answer_callback_query(call.id, "❌ لا يوجد رصيد كافٍ لدى العميل.")
             bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
