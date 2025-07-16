@@ -97,7 +97,9 @@ def register(bot, history):
         if user_id in pending_orders:
             bot.send_message(msg.chat.id, "⚠️ لديك طلب قيد الانتظار.")
             return
-        history.setdefault(user_id, []).append("products_menu")
+        if not isinstance(history.get(user_id), list):
+           history[user_id] = []
+        history[user_id].append("products_menu")
         show_products_menu(bot, msg)
 
     @bot.message_handler(func=lambda msg: msg.text == "🎮 شحن ألعاب و تطبيقات")
