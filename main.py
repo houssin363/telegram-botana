@@ -66,7 +66,7 @@ from handlers.keyboards import (
     products_menu,
     game_categories,
     recharge_menu, 
-    companies_transfer,
+    companies_transfer_menu,
     cash_transfer_menu,
     syrian_balance_menu,
     wallet_menu,
