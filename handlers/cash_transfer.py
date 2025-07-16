@@ -227,38 +227,44 @@ def register(bot, history):
        except Exception as e:
            bot.send_message(call.message.chat.id, f"❌ حدث خطأ: {e}")
         
-        @bot.callback_query_handler(func=lambda call: call.data.startswith("admin_cash_accept_"))
-        def admin_accept_cash_transfer(call):
-           try:
-               parts = call.data.split("_")
-               user_id = int(parts[-2])
-               total = int(parts[-1])
-               data = user_states.get(user_id, {})
-               if not has_sufficient_balance(user_id, total):
-                   bot.send_message(user_id, f"❌ فشل تحويل الكاش: لا يوجد رصيد كافٍ في محفظتك.")
-                   bot.answer_callback_query(call.id, "❌ لا يوجد رصيد كافٍ لدى العميل.")
-                   bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
-                   return
-            deduct_balance(user_id, total)
-            # الرسالة المطلوبة للعميل
-            bot.send_message(
-                user_id,
-                f"✅ تم شراء {data.get('cash_type')} للرقم {data.get('number')} بمبلغ {data.get('amount'):,} ل.س بنجاح."
-        )
-        bot.answer_callback_query(call.id, "✅ تم قبول الطلب")
-        bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
-        # يبقى للأدمن إرسال صورة أو رسالة إضافية
-        def forward_admin_message(m):
-            if m.content_type == "photo":
-                file_id = m.photo[-1].file_id
-                bot.send_photo(user_id, file_id, caption=m.caption or "تمت العملية بنجاح.")
-            else:
-                bot.send_message(user_id, m.text or "تمت العملية بنجاح.")
-        bot.send_message(call.message.chat.id, "📝 أرسل رسالة أو صورة للعميل مع صورة التحويل أو تأكيد العملية.")
-        bot.register_next_step_handler_by_chat_id(call.message.chat.id, forward_admin_message)
-        user_states.pop(user_id, None)
-    except Exception as e:
-        bot.send_message(call.message.chat.id, f"❌ حدث خطأ: {e}")
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("admin_cash_accept_"))
+    def admin_accept_cash_transfer(call):
+        try:
+            parts = call.data.split("_")
+            user_id = int(parts[-2])
+            total = int(parts[-1])
+            data = user_states.get(user_id, {})
+            if not has_sufficient_balance(user_id, total):
+                bot.send_message(user_id, f"❌ فشل تحويل الكاش: لا يوجد رصيد كافٍ في محفظتك.")
+                bot.answer_callback_query(call.id, "❌ لا يوجد رصيد كافٍ لدى العميل.")
+                bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+                return
+         deduct_balance(user_id, total)
+         # الرسالة المطلوبة للعميل
+         bot.send_message(
+             user_id,
+             f"✅ تم شراء {data.get('cash_type')} للرقم {data.get('number')} بمبلغ {data.get('amount'):,} ل.س بنجاح."
+         )
+         bot.answer_callback_query(call.id, "✅ تم قبول الطلب")
+         bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+         # يبقى للأدمن إرسال صورة أو رسالة إضافية
+         def forward_admin_message(m):
+             if m.content_type == "photo":
+                  file_id = m.photo[-1].file_id
+                  bot.send_photo(user_id, file_id, caption=m.caption or "تمت العملية بنجاح.")
+             else:
+                 bot.send_message(user_id, m.text or "تمت العملية بنجاح.")
+         bot.send_message(
+             call.message.chat.id,
+             "📝 أرسل رسالة أو صورة للعميل مع صورة التحويل أو تأكيد العملية."
+         )
+         bot.register_next_step_handler_by_chat_id(
+             call.message.chat.id,
+             forward_admin_message
+         )
+         user_states.pop(user_id, None)
+     except Exception as e:
+         bot.send_message(call.message.chat.id, f"❌ حدث خطأ: {e}")
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("admin_cash_reject_"))
     def admin_reject_cash_transfer(call):
