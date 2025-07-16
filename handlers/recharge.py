@@ -192,11 +192,11 @@ def register(bot, history):
 
             caption = (
                 f"💳 طلب شحن محفظة جديد:\n"
-                f"👤 المستخدم: {call.from_user.first_name} (@{call.from_user.username})\n"
-                f"🆔 ID: `{user_id}`\n"
+                f"👤 المستخدم: {call.from_user.first_name} (@{call.from_user.username or 'بدون معرف'})\n"
+                f"🆔 ID: {user_id}\n"
                 f"💵 المبلغ: {data['amount']:,} ل.س\n"
                 f"💳 الطريقة: {data['method']}\n"
-                f"🔢 رقم الإشعار: `{data['ref']}`"
+                f"🔢 رقم الإشعار: {data['ref']}"
             )
 
             markup = types.InlineKeyboardMarkup()
