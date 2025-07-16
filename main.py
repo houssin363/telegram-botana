@@ -52,6 +52,7 @@ from handlers import (
     admin,
     recharge,
     cash_transfer,
+    companies_transfer,
     products,
     media_services,
     wholesale,
@@ -64,7 +65,8 @@ from handlers.keyboards import (
     main_menu,
     products_menu,
     game_categories,
-    recharge_menu,
+    recharge_menu, 
+    companies_transfer,
     cash_transfer_menu,
     syrian_balance_menu,
     wallet_menu,
@@ -87,6 +89,7 @@ support.register(bot, user_state)
 admin.register(bot, user_state)
 recharge.register(bot, user_state)
 cash_transfer.register(bot, user_state)
+companies_transfer.register(bot, user_state)
 products.register(bot, user_state)
 media_services.register(bot, user_state)
 wholesale.register(bot, user_state)
@@ -94,6 +97,7 @@ syr_units.register(bot, user_state)
 mtn_units.register(bot, user_state)
 university_fees.register(bot)
 internet_providers.register(bot)
+
 
 # ---------------------------------------------------------
 # 4.1) ربط النظام الجديد لأوامر المنتجات (لا تحذف هذا السطر)
