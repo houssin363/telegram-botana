@@ -2,7 +2,7 @@ from telebot import types
 from config import BOT_NAME
 from handlers import keyboards
 from database.models.product import Product
-from services.wallet_service import register_user_if_not_exist, get_balance, deduct_balance
+from services.wallet_service import has_sufficient_balance, deduct_balance, get_balance
 
 # استدعاء عميل supabase
 from database.db import client
