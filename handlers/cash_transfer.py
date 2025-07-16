@@ -195,7 +195,7 @@ def register(bot, history):
         bot.send_message(call.message.chat.id, "💳 اختر طريقة شحن المحفظة:", reply_markup=keyboards.recharge_menu())
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("admin_cash_accept_"))
-def admin_accept_cash_transfer(call):
+    def admin_accept_cash_transfer(call):
     try:
         parts = call.data.split("_")
         user_id = int(parts[-2])
