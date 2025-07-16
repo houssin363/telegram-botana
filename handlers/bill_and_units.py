@@ -315,7 +315,7 @@ def register_bill_and_units(bot, history):
             call.message.chat.id,
             f"سيتم دفع فاتورة سيرياتيل للرقم: {user_states[user_id]['number']}\n"
             f"المبلغ: {amount:,} ل.س\n"
-            f"أجور التحويل (17%): {amount_with_fee-amount:,} ل.س\n"
+            f"أجور التحويل : {amount_with_fee-amount:,} ل.س\n"
             f"الإجمالي: {amount_with_fee:,} ل.س\n"
             "هل تريد المتابعة؟",
             reply_markup=kb
@@ -448,7 +448,7 @@ def register_bill_and_units(bot, history):
             call.message.chat.id,
             f"سيتم دفع فاتورة MTN للرقم: {user_states[user_id]['number']}\n"
             f"المبلغ: {amount:,} ل.س\n"
-            f"أجور التحويل (17%): {amount_with_fee-amount:,} ل.س\n"
+            f"أجور التحويل : {amount_with_fee-amount:,} ل.س\n"
             f"الإجمالي: {amount_with_fee:,} ل.س\n"
             "هل تريد المتابعة؟",
             reply_markup=kb
