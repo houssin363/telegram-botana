@@ -71,7 +71,6 @@ from handlers.keyboards import (
     wallet_menu,
     support_menu,
     links_menu,
-    bill_and_units_menu,
     media_services_menu,
 )
 
