@@ -16,7 +16,7 @@ def products_menu():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
     markup.add(
         types.KeyboardButton("🎮 شحن ألعاب و تطبيقات"),
-        types.KeyboardButton("💳 تحويل رصيد سوري"),
+        types.KeyboardButton("💳 تحويل وحدات فاتورة سوري"),
         types.KeyboardButton("🌐 دفع مزودات الإنترنت ADSL"),
         types.KeyboardButton("🎓 دفع رسوم جامعية"),
         types.KeyboardButton("حوالة مالية عبر شركات"),
