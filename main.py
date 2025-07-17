@@ -78,11 +78,12 @@ from handlers.keyboards import (
 # 3) حالة المستخدم
 # ---------------------------------------------------------
 user_state: dict[int, str] = {}
+user_history = {}  # <--- أضف هذا السطر الجديد
 
 # ---------------------------------------------------------
 # 4) تسجيل جميع الهاندلرز (بدون تغيير أي شيء في القائمة الرئيسية)
 # ---------------------------------------------------------
-start.register(bot, user_state)
+start.register(bot, user_history, user_state)  # <--- عدل هذا السطر
 wallet.register(bot, user_state)
 support.register(bot, user_state)
 admin.register(bot, user_state)
@@ -95,7 +96,6 @@ media_services.register(bot, user_state)
 wholesale.register(bot, user_state)
 university_fees.register(bot)
 internet_providers.register(bot)
-
 
 # ---------------------------------------------------------
 # 4.1) ربط النظام الجديد لأوامر المنتجات (لا تحذف هذا السطر)
