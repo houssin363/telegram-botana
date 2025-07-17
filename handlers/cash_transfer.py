@@ -3,8 +3,42 @@ from services.wallet_service import has_sufficient_balance, deduct_balance, get_
 from config import ADMIN_MAIN_ID
 from handlers.wallet import register_user_if_not_exist
 from handlers import keyboards
+import math  # لإدارة صفحات الكيبورد
 
 user_states = {}
+
+# قائمة أنواع التحويل الكاش لاستخدامها في الكيبورد الجديد
+CASH_TYPES = [
+    "تحويل إلى سيرياتيل كاش",
+    "تحويل إلى أم تي إن كاش",
+    "تحويل إلى شام كاش",
+]
+
+CASH_PAGE_SIZE = 2  # عدد العناصر لكل صفحة
+
+def build_cash_menu(page: int = 0):
+    """يبني كيبورد مُقسّم إلى صفحات لاختيار نوع التحويل."""
+    total = len(CASH_TYPES)
+    pages = max(1, math.ceil(total / CASH_PAGE_SIZE))
+    page = max(0, min(page, pages - 1))
+
+    kb = types.InlineKeyboardMarkup()
+    start = page * CASH_PAGE_SIZE
+    end = start + CASH_PAGE_SIZE
+
+    for idx, label in enumerate(CASH_TYPES[start:end], start=start):
+        kb.add(types.InlineKeyboardButton(label, callback_data=f"cash_sel_{idx}"))
+
+    nav = []
+    if page > 0:
+        nav.append(types.InlineKeyboardButton("◀️", callback_data=f"cash_page_{page-1}"))
+    nav.append(types.InlineKeyboardButton(f"{page+1}/{pages}", callback_data="cash_noop"))
+    if page < pages - 1:
+        nav.append(types.InlineKeyboardButton("▶️", callback_data=f"cash_page_{page+1}"))
+    kb.row(*nav)
+    kb.add(types.InlineKeyboardButton("❌ إلغاء", callback_data="commission_cancel"))
+    return kb
+
 
 COMMISSION_PER_50000 = 3500
 
@@ -17,11 +51,16 @@ def calculate_commission(amount):
     return commission
 
 def start_cash_transfer(bot, message, history=None):
+    """إظهار قائمة اختيار نوع الكاش باستخدام InlineKeyboard مع Pagination."""
     user_id = message.from_user.id
     register_user_if_not_exist(user_id)
     if history is not None:
         history.setdefault(user_id, []).append("cash_menu")
-    bot.send_message(message.chat.id, "📤 اختر نوع التحويل من محفظتك:", reply_markup=keyboards.cash_transfer_menu())
+    bot.send_message(
+        message.chat.id,
+        "📤 اختر نوع التحويل من محفظتك:",
+        reply_markup=build_cash_menu(0)
+    )
 
 def make_inline_buttons(*buttons):
     kb = types.InlineKeyboardMarkup()
@@ -30,6 +69,44 @@ def make_inline_buttons(*buttons):
     return kb
 
 def register(bot, history):
+
+    # ======== دعم الكيبورد الجديد Inline + Pagination ========
+    @bot.callback_query_handler(func=lambda c: c.data.startswith("cash_page_"))
+    def _paginate_cash_menu(call):
+        page = int(call.data.split("_")[-1])
+        bot.edit_message_reply_markup(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            reply_markup=build_cash_menu(page)
+        )
+        bot.answer_callback_query(call.id)
+
+    @bot.callback_query_handler(func=lambda c: c.data.startswith("cash_sel_"))
+    def _cash_type_selected(call):
+        idx = int(call.data.split("_")[-1])
+        if idx < 0 or idx >= len(CASH_TYPES):
+            bot.answer_callback_query(call.id, "❌ خيار غير صالح.")
+            return
+        cash_type = CASH_TYPES[idx]
+        user_id = call.from_user.id
+        user_states[user_id] = {"step": "show_commission", "cash_type": cash_type}
+        history.setdefault(user_id, []).append("cash_menu")
+        text = (
+            "⚠️ تنويه:\n"
+            f"العمولة لكل 50000 ل.س هي {COMMISSION_PER_50000} ل.س.\n"
+            "هل تريد المتابعة وكتابة الرقم المراد التحويل له؟"
+        )
+        kb = make_inline_buttons(
+            ("✅ موافق", "commission_confirm"),
+            ("❌ إلغاء", "commission_cancel")
+        )
+        bot.edit_message_text(
+            text,
+            call.message.chat.id,
+            call.message.message_id,
+            reply_markup=kb
+        )
+        bot.answer_callback_query(call.id)
 
     @bot.message_handler(func=lambda msg: msg.text == "🧧 تحويل كاش من محفظتك")
     def open_cash_menu(msg):
