@@ -3,7 +3,7 @@ from handlers import keyboards
 from config import BOT_NAME, FORCE_SUB_CHANNEL_USERNAME
 from services.wallet_service import register_user_if_not_exist  # هذا مهم
 
-def register(bot, user_history, user_state):
+def register(bot, user_history):
     @bot.message_handler(commands=['start'])
     def send_welcome(message):
         user_id = message.from_user.id
@@ -34,19 +34,16 @@ def register(bot, user_history, user_state):
                 )
                 return
 
-        # ====== هنا يتم تصفير كل حالة المستخدم عند /start أو "ابدأ من جديد" ======
-        user_history[user_id] = []
-        user_state.pop(user_id, None)
-        # ========================================================
-
+        # بعد الاشتراك أو إذا لم يكن هناك شرط اشتراك
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.add("🚀 ابدأ بالتسوق العالمي", "🔄 ابدأ من جديد")
+        markup.add("🚀 ابدأ بالتسوق العالمي")
         bot.send_message(
             message.chat.id,
             WELCOME_MESSAGE,
             parse_mode="Markdown",
             reply_markup=markup
         )
+        user_history[user_id] = []
 
     @bot.message_handler(func=lambda msg: msg.text == "🚀 ابدأ بالتسوق العالمي")
     def enter_main_menu(msg):
@@ -62,7 +59,6 @@ def register(bot, user_history, user_state):
 
     @bot.message_handler(func=lambda msg: msg.text == "🔄 ابدأ من جديد")
     def restart_user(msg):
-        # كل ما يقوم به هو إعادة استدعاء send_welcome وبالتالي تصفير كل حالة
         send_welcome(msg)
 
     @bot.message_handler(func=lambda msg: msg.text == "🌐 صفحتنا")
