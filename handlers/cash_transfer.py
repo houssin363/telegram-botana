@@ -4,12 +4,6 @@ from config import ADMIN_MAIN_ID
 from handlers.wallet import register_user_if_not_exist
 from handlers import keyboards
 
-def start_cash_transfer(bot, message, user_state):
-    user_id = message.from_user.id
-    register_user_if_not_exist(user_id)
-    user_state[user_id] = "cash_menu"
-    bot.send_message(message.chat.id, "📤 اختر نوع التحويل من محفظتك:", reply_markup=keyboards.cash_transfer_menu())
-
 user_states = {}
 
 COMMISSION_PER_50000 = 3500
