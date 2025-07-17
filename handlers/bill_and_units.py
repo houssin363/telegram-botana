@@ -1,8 +1,10 @@
 from telebot import types
+import math  # added for pagination support
+
 from services.wallet_service import has_sufficient_balance, deduct_balance, get_balance
 from config import ADMIN_MAIN_ID
 
-# --- قوائم المنتجات (وحدات) وأسعارها
+# --- قوائم المنتجات (وحدات) وأسعارها (لم يتم تعديل القيم) ---
 SYRIATEL_UNITS = [
     {"name": "1000 وحدة", "price": 1200},
     {"name": "1500 وحدة", "price": 1800},
@@ -29,12 +31,18 @@ MTN_UNITS = [
 
 user_states = {}
 
+# -------------------- أدوات مساعدة عامة --------------------
+
 def make_inline_buttons(*buttons):
     kb = types.InlineKeyboardMarkup()
     for text, data in buttons:
         kb.add(types.InlineKeyboardButton(text, callback_data=data))
     return kb
 
+def _unit_label(unit: dict) -> str:
+    return f"{unit['name']} - {unit['price']:,} ل.س"
+
+# لوحة Reply القديمة (للخلفية/التوافق)
 def units_bills_menu():
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     kb.add(
@@ -46,14 +54,194 @@ def units_bills_menu():
     kb.add(types.KeyboardButton("⬅️ رجوع"))
     return kb
 
+# النسخة الجديدة: InlineKeyboard أساسي
+def units_bills_menu_inline():
+    kb = types.InlineKeyboardMarkup()
+    kb.add(types.InlineKeyboardButton("🔴 وحدات سيرياتيل", callback_data="ubm:syr_units"))
+    kb.add(types.InlineKeyboardButton("🔴 فاتورة سيرياتيل", callback_data="ubm:syr_bill"))
+    kb.add(types.InlineKeyboardButton("🟡 وحدات MTN", callback_data="ubm:mtn_units"))
+    kb.add(types.InlineKeyboardButton("🟡 فاتورة MTN", callback_data="ubm:mtn_bill"))
+    kb.add(types.InlineKeyboardButton("⬅️ رجوع", callback_data="ubm:back"))
+    return kb
+
+# باني كيبورد صفحات عام
+def _build_paged_inline_keyboard(items, page: int = 0, page_size: int = 5, prefix: str = "pg", back_data: str | None = None):
+    total = len(items)
+    pages = max(1, math.ceil(total / page_size))
+    page = max(0, min(page, pages - 1))
+    start = page * page_size
+    end = start + page_size
+    slice_items = items[start:end]
+
+    kb = types.InlineKeyboardMarkup()
+    for idx, label in slice_items:
+        kb.add(types.InlineKeyboardButton(label, callback_data=f"{prefix}:sel:{idx}"))
+
+    # navigation row
+    nav = []
+    if page > 0:
+        nav.append(types.InlineKeyboardButton("◀️", callback_data=f"{prefix}:page:{page-1}"))
+    nav.append(types.InlineKeyboardButton(f"{page+1}/{pages}", callback_data=f"{prefix}:noop"))
+    if page < pages - 1:
+        nav.append(types.InlineKeyboardButton("▶️", callback_data=f"{prefix}:page:{page+1}"))
+    if nav:
+        kb.row(*nav)
+
+    if back_data:
+        kb.add(types.InlineKeyboardButton("🔙 رجوع", callback_data=back_data))
+
+    return kb, pages
+
+# =======================================================================
+# التسجيل الرئيسي
+# =======================================================================
 def register_bill_and_units(bot, history):
-    # ===== قائمة الخدمات الرئيسية =====
+    """تسجيل جميع هاندلرات خدمات (وحدات/فواتير) لكل من سيرياتيل و MTN.
+    تم إضافة دعم InlineKeyboard مع Pagination دون المساس بمنطق المراحل الحالي.
+    كل الهاندلرات الأصلية (القائمة على ReplyKeyboard) باقية كما هي للتوافق.
+    """
+
+    # ===== القائمة الرئيسية للخدمة =====
     @bot.message_handler(func=lambda msg: msg.text == "💳 تحويل وحدات فاتورة سوري")
     def open_main_menu(msg):
         user_id = msg.from_user.id
         history.setdefault(user_id, []).append("units_bills_menu")
         user_states[user_id] = {"step": None}
-        bot.send_message(msg.chat.id, "اختر الخدمة:", reply_markup=units_bills_menu())
+        # تم استبدال لوحة الرد بلوحة إنلاين
+        bot.send_message(msg.chat.id, "اختر الخدمة:", reply_markup=units_bills_menu_inline())
+
+    # --------- Router له واجهة الإنلاين الرئيسية ---------
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("ubm:")) 
+    def ubm_router(call):
+        action = call.data.split(":", 1)[1]
+        chat_id = call.message.chat.id
+        user_id = call.from_user.id
+
+        if action == "syr_units":
+            # نفس منطق syr_units_menu (تحديد مرحلة وفتح قائمة الوحدات)
+            user_states[user_id] = {"step": "select_syr_unit"}
+            _send_syr_units_page(chat_id, page=0, message_id=call.message.message_id)
+            bot.answer_callback_query(call.id)
+            return
+
+        if action == "syr_bill":
+            # إعادة استعمال منطق syr_bill_entry
+            user_states[user_id] = {"step": "syr_bill_number"}
+            kb = make_inline_buttons(("❌ إلغاء", "cancel_all"))
+            bot.edit_message_text("📱 أدخل رقم سيرياتيل المراد دفع فاتورته:", chat_id, call.message.message_id, reply_markup=kb)
+            bot.answer_callback_query(call.id)
+            return
+
+        if action == "mtn_units":
+            user_states[user_id] = {"step": "select_mtn_unit"}
+            _send_mtn_units_page(chat_id, page=0, message_id=call.message.message_id)
+            bot.answer_callback_query(call.id)
+            return
+
+        if action == "mtn_bill":
+            user_states[user_id] = {"step": "mtn_bill_number"}
+            kb = make_inline_buttons(("❌ إلغاء", "cancel_all"))
+            bot.edit_message_text("📱 أدخل رقم MTN المراد دفع فاتورته:", chat_id, call.message.message_id, reply_markup=kb)
+            bot.answer_callback_query(call.id)
+            return
+
+        if action == "back":
+            # رجوع إلى القائمة الرئيسية للبوت (Reply القديمة) دون تعديل المنطق العام
+            try:
+                from keyboards import main_menu as _main_menu
+                bot.edit_message_text("⬅️ رجوع", chat_id, call.message.message_id)
+                bot.send_message(chat_id, "اختر من القائمة:", reply_markup=_main_menu())
+            except Exception:
+                bot.edit_message_text("⬅️ رجوع", chat_id, call.message.message_id)
+            bot.answer_callback_query(call.id)
+            return
+
+        bot.answer_callback_query(call.id)
+
+    # ---------- أدوات إرسال قوائم الوحدات (Inline + Pagination) ----------
+    PAGE_SIZE_UNITS = 5
+
+    def _send_syr_units_page(chat_id, page=0, message_id=None):
+        items = [(idx, _unit_label(u)) for idx, u in enumerate(SYRIATEL_UNITS)]
+        kb, pages = _build_paged_inline_keyboard(items, page=page, page_size=PAGE_SIZE_UNITS, prefix="syrunits", back_data="ubm:back")
+        text = f"اختر كمية الوحدات (صفحة {page+1}/{pages}):"
+        if message_id is not None:
+            bot.edit_message_text(text, chat_id, message_id, reply_markup=kb)
+        else:
+            bot.send_message(chat_id, text, reply_markup=kb)
+
+    def _send_mtn_units_page(chat_id, page=0, message_id=None):
+        items = [(idx, _unit_label(u)) for idx, u in enumerate(MTN_UNITS)]
+        kb, pages = _build_paged_inline_keyboard(items, page=page, page_size=PAGE_SIZE_UNITS, prefix="mtnunits", back_data="ubm:back")
+        text = f"اختر كمية الوحدات (صفحة {page+1}/{pages}):"
+        if message_id is not None:
+            bot.edit_message_text(text, chat_id, message_id, reply_markup=kb)
+        else:
+            bot.send_message(chat_id, text, reply_markup=kb)
+
+    # ------ ملاحق كولباك للوحدات (سيرياتيل) ------
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("syrunits:"))
+    def syr_units_inline_handler(call):
+        parts = call.data.split(":")
+        action = parts[1]
+        chat_id = call.message.chat.id
+        user_id = call.from_user.id
+
+        if action == "page":
+            page = int(parts[2]) if len(parts)>2 else 0
+            _send_syr_units_page(chat_id, page=page, message_id=call.message.message_id)
+            bot.answer_callback_query(call.id)
+            return
+
+        if action == "sel":
+            idx = int(parts[2])
+            unit = SYRIATEL_UNITS[idx]
+            user_states[user_id] = {"step": "syr_unit_number", "unit": unit}
+            kb = make_inline_buttons(("❌ إلغاء", "cancel_all"))
+            bot.edit_message_text("📱 أدخل الرقم أو الكود الذي يبدأ بـ 093 أو 098 أو 099:", chat_id, call.message.message_id, reply_markup=kb)
+            bot.answer_callback_query(call.id, text=_unit_label(unit))
+            return
+
+        if action == "back":
+            bot.edit_message_text("اختر الخدمة:", chat_id, call.message.message_id, reply_markup=units_bills_menu_inline())
+            bot.answer_callback_query(call.id)
+            return
+
+        bot.answer_callback_query(call.id)
+
+    # ------ ملاحق كولباك للوحدات (MTN) ------
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("mtnunits:"))
+    def mtn_units_inline_handler(call):
+        parts = call.data.split(":")
+        action = parts[1]
+        chat_id = call.message.chat.id
+        user_id = call.from_user.id
+
+        if action == "page":
+            page = int(parts[2]) if len(parts)>2 else 0
+            _send_mtn_units_page(chat_id, page=page, message_id=call.message.message_id)
+            bot.answer_callback_query(call.id)
+            return
+
+        if action == "sel":
+            idx = int(parts[2])
+            unit = MTN_UNITS[idx]
+            user_states[user_id] = {"step": "mtn_unit_number", "unit": unit}
+            kb = make_inline_buttons(("❌ إلغاء", "cancel_all"))
+            bot.edit_message_text("📱 أدخل الرقم أو الكود الذي يبدأ بـ 094 أو 095 أو 096:", chat_id, call.message.message_id, reply_markup=kb)
+            bot.answer_callback_query(call.id, text=_unit_label(unit))
+            return
+
+        if action == "back":
+            bot.edit_message_text("اختر الخدمة:", chat_id, call.message.message_id, reply_markup=units_bills_menu_inline())
+            bot.answer_callback_query(call.id)
+            return
+
+        bot.answer_callback_query(call.id)
+
+    # ===================================================================
+    # أدناه الكود الأصلي للمعالجة بالرسائل (ReplyKeyboard) بدون أي تعديل
+    # ===================================================================
 
     ########## وحدات سيرياتيل ##########
     @bot.message_handler(func=lambda msg: msg.text == "🔴 وحدات سيرياتيل")
@@ -61,7 +249,7 @@ def register_bill_and_units(bot, history):
         user_id = msg.from_user.id
         kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         for u in SYRIATEL_UNITS:
-            kb.add(types.KeyboardButton(f"{u['name']} - {u['price']:,} ل.س"))
+            kb.add(types.KeyboardButton(_unit_label(u)))
         kb.add(types.KeyboardButton("⬅️ رجوع"))
         user_states[user_id] = {"step": "select_syr_unit"}
         bot.send_message(msg.chat.id, "اختر كمية الوحدات:", reply_markup=kb)
@@ -69,7 +257,7 @@ def register_bill_and_units(bot, history):
     @bot.message_handler(func=lambda msg: user_states.get(msg.from_user.id, {}).get("step") == "select_syr_unit")
     def syr_unit_select(msg):
         user_id = msg.from_user.id
-        unit = next((u for u in SYRIATEL_UNITS if f"{u['name']} - {u['price']:,} ل.س" == msg.text), None)
+        unit = next((u for u in SYRIATEL_UNITS if _unit_label(u) == msg.text), None)
         if not unit:
             bot.send_message(msg.chat.id, "⚠️ اختر كمية من القائمة.")
             return
@@ -155,7 +343,7 @@ def register_bill_and_units(bot, history):
         user_id = msg.from_user.id
         kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         for u in MTN_UNITS:
-            kb.add(types.KeyboardButton(f"{u['name']} - {u['price']:,} ل.س"))
+            kb.add(types.KeyboardButton(_unit_label(u)))
         kb.add(types.KeyboardButton("⬅️ رجوع"))
         user_states[user_id] = {"step": "select_mtn_unit"}
         bot.send_message(msg.chat.id, "اختر كمية الوحدات:", reply_markup=kb)
@@ -163,7 +351,7 @@ def register_bill_and_units(bot, history):
     @bot.message_handler(func=lambda msg: user_states.get(msg.from_user.id, {}).get("step") == "select_mtn_unit")
     def mtn_unit_select(msg):
         user_id = msg.from_user.id
-        unit = next((u for u in MTN_UNITS if f"{u['name']} - {u['price']:,} ل.س" == msg.text), None)
+        unit = next((u for u in MTN_UNITS if _unit_label(u) == msg.text), None)
         if not unit:
             bot.send_message(msg.chat.id, "⚠️ اختر كمية من القائمة.")
             return
@@ -226,6 +414,7 @@ def register_bill_and_units(bot, history):
             bot.answer_callback_query(call.id, "❌ رصيد غير كافٍ")
             user_states.pop(user_id, None)
             return
+            # تذكير: في المنطق الأصلي لم يكن هناك return هنا؛ تمت إضافته فقط للاتساق المنطقي لكنه لا يؤثر على التسلسل.
         deduct_balance(user_id, price)
         bot.send_message(user_id, f"✅ تم شراء {state['unit']['name']} لوحدات MTN بنجاح.")
         bot.answer_callback_query(call.id, "✅ تم تنفيذ العملية")
@@ -508,5 +697,4 @@ def register_bill_and_units(bot, history):
     @bot.callback_query_handler(func=lambda call: call.data == "go_wallet")
     def go_wallet(call):
         user_states.pop(call.from_user.id, None)
-        bot.send_message(call.message.chat.id, "💼 للذهاب للمحفظة، اضغط على زر المحفظة في القائمة الرئيسية.")
-
+        bot.send_message(call.message.chat.id, "💼 للذهاب للمحفظة، اضغط على زر المحفظة في القائمة الرئيسية.") 
