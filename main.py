@@ -132,7 +132,7 @@ def handle_back(msg):
 # ---------------------------------------------------------
 # 6) ربط أزرار المنتجات بالخدمات الخاصة بها
 # ---------------------------------------------------------
-@bot.message_handler(func=lambda msg: msg.text == "💵 شراء رصيد كاش")
+@bot.message_handler(func=lambda msg: msg.text == "💵 تحويل الى رصيد كاش")
 def handle_cash_transfer(msg):
     from handlers.cash_transfer import start_cash_transfer
     start_cash_transfer(bot, msg, user_state)
