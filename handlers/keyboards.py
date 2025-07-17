@@ -3,7 +3,6 @@ from telebot import types
 # Aliases for convenience
 InlineKeyboardButton = types.InlineKeyboardButton
 InlineKeyboardMarkup = types.InlineKeyboardMarkup
-InlineKeyboardRemove = types.InlineKeyboardRemove  # corrected to remove inline keyboard
 
 def main_menu():
     markup = InlineKeyboardMarkup(row_width=2)
@@ -151,8 +150,8 @@ def media_services_menu():
     return markup
 
 def hide_keyboard():
-    # Returns an empty inline keyboard to remove it
-    return InlineKeyboardRemove()
+    # Returns an empty inline keyboard markup to remove it
+    return InlineKeyboardMarkup()
 
 def register_callback_handlers(bot):
     @bot.callback_query_handler(func=lambda call: True)
