@@ -13,15 +13,16 @@ def main_menu():
     return markup
 
 def products_menu():
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    # تم التحويل إلى لوحة أزرار مضمّنة (InlineKeyboardMarkup)
+    markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(
-        types.KeyboardButton("🎮 شحن ألعاب و تطبيقات"),
-        types.KeyboardButton("💳 تحويل وحدات فاتورة سوري"),
-        types.KeyboardButton("🌐 دفع مزودات الإنترنت ADSL"),
-        types.KeyboardButton("🎓 دفع رسوم جامعية"),
-        types.KeyboardButton("حوالة مالية عبر شركات"),
-        types.KeyboardButton("💵 تحويل الى رصيد كاش"),
-        types.KeyboardButton("⬅️ رجوع")
+        types.InlineKeyboardButton("🎮 شحن ألعاب و تطبيقات", callback_data="product_game_recharge"),
+        types.InlineKeyboardButton("💳 تحويل وحدات فاتورة سوري", callback_data="product_syrian_units_transfer"),
+        types.InlineKeyboardButton("🌐 دفع مزودات الإنترنت ADSL", callback_data="product_adsl_payment"),
+        types.InlineKeyboardButton("🎓 دفع رسوم جامعية", callback_data="product_university_fees"),
+        types.InlineKeyboardButton("حوالة مالية عبر شركات", callback_data="product_companies_transfer"),
+        types.InlineKeyboardButton("💵 تحويل الى رصيد كاش", callback_data="product_cash_credit"),
+        types.InlineKeyboardButton("⬅️ رجوع", callback_data="back_to_main")
     )
     return markup
 
