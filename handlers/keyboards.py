@@ -3,7 +3,7 @@ from telebot import types
 # Aliases for convenience
 InlineKeyboardButton = types.InlineKeyboardButton
 InlineKeyboardMarkup = types.InlineKeyboardMarkup
-InlineKeyboardRemove = types.InlineKeyboardMarkup  # empty markup to remove inline keyboard
+InlineKeyboardRemove = types.InlineKeyboardRemove  # corrected to remove inline keyboard
 
 def main_menu():
     markup = InlineKeyboardMarkup(row_width=2)
@@ -153,3 +153,19 @@ def media_services_menu():
 def hide_keyboard():
     # Returns an empty inline keyboard to remove it
     return InlineKeyboardRemove()
+
+def register_callback_handlers(bot):
+    @bot.callback_query_handler(func=lambda call: True)
+    def handle_inline_query(call):
+        data = call.data
+        # Pagination for Syrian balance menu
+        if data.startswith("syriatel_page_"):
+            page = int(data.split("_")[-1])
+            markup = syrian_balance_menu(page=page)
+            bot.edit_message_reply_markup(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                reply_markup=markup
+            )
+        # Process other callback_data as needed...
+        bot.answer_callback_query(call.id)
