@@ -78,6 +78,7 @@ from handlers.keyboards import (
 # 3) حالة المستخدم
 # ---------------------------------------------------------
 user_state: dict[int, str] = {}
+history: dict[int, list] = {}   # <== اضفتها هنا
 
 # ---------------------------------------------------------
 # 4) تسجيل جميع الهاندلرز (بدون تغيير أي شيء في القائمة الرئيسية)
@@ -141,7 +142,12 @@ def handle_transfers(msg):
 @bot.message_handler(func=lambda msg: msg.text == "💵 تحويل الى رصيد كاش")
 def handle_cash_transfer(msg):
     from handlers.cash_transfer import start_cash_transfer
-    start_cash_transfer(bot, msg, user_state)
+    start_cash_transfer(bot, msg, history)   # <=== مررت history بدل user_state
+
+@bot.message_handler(func=lambda msg: msg.text == "حوالة مالية عبر شركات")
+def handle_companies_transfer(msg):
+    from handlers.companies_transfer import open_companies_menu
+    open_companies_menu(bot, msg, history)   # <=== مررت history بدل user_state
 
 @bot.message_handler(func=lambda msg: msg.text == "💳 تحويل رصيد سوري")
 def handle_syrian_units(msg):
