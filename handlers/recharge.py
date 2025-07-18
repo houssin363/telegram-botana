@@ -9,7 +9,6 @@ import logging
 recharge_requests = {}
 recharge_pending = set()
 
-# ============== أرقام/أكواد الشحن التي يمكن للإدمن تعديلها بسهولة ==============
 SYRIATEL_NUMBERS = ["0011111", "0022222", "0033333", "0044444"]
 MTN_NUMBERS = ["0005555", "0006666", "0006666", "0007777"]
 SHAMCASH_CODES = ["000xz55XH55", "00YI06MB666"]
@@ -50,16 +49,14 @@ def get_method_instructions(method):
         text = "حدث خطأ في تحديد طريقة الشحن."
     return text
 
-# === الدوال المساعدة المهمة ===
 def clear_pending_request(user_id):
-    """احذف بيانات طلب الشحن من pending & requests."""
     recharge_pending.discard(user_id)
     recharge_requests.pop(user_id, None)
 
-# ✅ عرض قائمة طرق الشحن
 def start_recharge_menu(bot, message, history=None):
     if history:
         history.setdefault(message.from_user.id, []).append("recharge_menu")
+    logging.info(f"[RECHARGE][{message.from_user.id}] فتح قائمة الشحن")
     bot.send_message(
         message.chat.id,
         "💳 اختر طريقة شحن محفظتك:",
@@ -78,18 +75,19 @@ def register(bot, history):
     def request_invoice(msg):
         user_id = msg.from_user.id
         if user_id in recharge_pending:
+            logging.warning(f"[RECHARGE][{user_id}] محاولة شحن جديدة أثناء وجود طلب معلق")
             bot.send_message(msg.chat.id, "⚠️ لديك طلب قيد المعالجة. الرجاء الانتظار.")
             return
 
         method = msg.text.replace("📲 ", "").replace("💳 ", "")
         recharge_requests[user_id] = {"method": method}
-        # عرض التعليمات مع الأرقام/الأكواد وزر تأكيد أو إلغاء
         instructions = get_method_instructions(method)
         markup = types.InlineKeyboardMarkup()
         markup.add(
             types.InlineKeyboardButton("✅ تأكيد التحويل", callback_data="confirm_recharge_method"),
             types.InlineKeyboardButton("❌ إلغاء", callback_data="cancel_recharge_method")
         )
+        logging.info(f"[RECHARGE][{user_id}] بدأ شحن بطريقة: {method}")
         bot.send_message(
             msg.chat.id,
             instructions,
@@ -101,7 +99,7 @@ def register(bot, history):
     def handle_method_confirm_cancel(call):
         user_id = call.from_user.id
         if call.data == "confirm_recharge_method":
-            # بعد التأكيد يطلب صورة الاشعار
+            logging.info(f"[RECHARGE][{user_id}] أكد طريقة الشحن، بانتظار الصورة")
             bot.send_message(
                 call.message.chat.id,
                 "📸 أرسل صورة إشعار الدفع (سكرين أو لقطة شاشة):",
@@ -109,6 +107,7 @@ def register(bot, history):
             )
         else:
             clear_pending_request(user_id)
+            logging.info(f"[RECHARGE][{user_id}] ألغى الشحن من شاشة اختيار الطريقة")
             bot.send_message(
                 call.message.chat.id,
                 "❌ تم إلغاء العملية. يمكنك البدء من جديد.",
@@ -122,6 +121,7 @@ def register(bot, history):
             return
         photo_id = msg.photo[-1].file_id
         recharge_requests[user_id]["photo"] = photo_id
+        logging.info(f"[RECHARGE][{user_id}] أرسل صورة إشعار الدفع")
         bot.send_message(msg.chat.id, "🔢 أرسل رقم الإشعار / رمز العملية:", reply_markup=keyboards.recharge_menu())
 
     @bot.message_handler(
@@ -131,6 +131,7 @@ def register(bot, history):
     )
     def get_reference(msg):
         recharge_requests[msg.from_user.id]["ref"] = msg.text
+        logging.info(f"[RECHARGE][{msg.from_user.id}] أرسل رقم الإشعار: {msg.text}")
         bot.send_message(msg.chat.id, "💰 أرسل مبلغ الشحن (بالليرة السورية):", reply_markup=keyboards.recharge_menu())
 
     @bot.message_handler(
@@ -142,8 +143,8 @@ def register(bot, history):
         user_id = msg.from_user.id
         amount_text = msg.text.strip()
 
-        # فقط أرقام صحيحة بدون أي رموز أو نقاط
         if not amount_text.isdigit():
+            logging.warning(f"[RECHARGE][{user_id}] محاولة إدخال مبلغ شحن غير صالح: {amount_text}")
             bot.send_message(
                 msg.chat.id,
                 "❌ يرجى إدخال مبلغ صحيح بالأرقام فقط (بدون أي فواصل أو نقاط أو رموز).",
@@ -155,7 +156,6 @@ def register(bot, history):
         data = recharge_requests[user_id]
         data["amount"] = amount
 
-        # رسالة التأكيد للمستخدم قبل الإرسال للإدارة
         confirm_text = (
             f"🔎 **يرجى التأكد من معلومات الشحن:**\n"
             f"💳 الطريقة: {data['method']}\n"
@@ -171,6 +171,7 @@ def register(bot, history):
             types.InlineKeyboardButton("❌ إلغاء", callback_data="user_cancel_recharge")
         )
 
+        logging.info(f"[RECHARGE][{user_id}] تأكيد معلومات الشحن: مبلغ {amount}")
         bot.send_message(
             msg.chat.id,
             confirm_text,
@@ -185,10 +186,10 @@ def register(bot, history):
         if call.data == "user_confirm_recharge":
             data = recharge_requests.get(user_id)
             if not data:
+                logging.warning(f"[RECHARGE][{user_id}] تأكيد طلب شحن بدون بيانات")
                 bot.answer_callback_query(call.id, "لا يوجد طلب قيد المعالجة.")
                 return
 
-            # ⬅️ هنا ضمان تسجيل المستخدم قبل إرسال الطلب للأدمن
             name = call.from_user.full_name if hasattr(call.from_user, 'full_name') else call.from_user.first_name
             register_user_if_not_exist(user_id, name)
 
@@ -207,11 +208,12 @@ def register(bot, history):
                 types.InlineKeyboardButton("❌ رفض", callback_data=f"reject_add_{user_id}")
             )
 
+            logging.info(f"[RECHARGE][{user_id}] إرسال طلب الشحن للإدارة")
             bot.send_photo(
-            ADMIN_MAIN_ID,
-            photo=data["photo"],
-            caption=caption,
-            reply_markup=markup
+                ADMIN_MAIN_ID,
+                photo=data["photo"],
+                caption=caption,
+                reply_markup=markup
             )
             bot.send_message(
                 user_id,
@@ -222,10 +224,10 @@ def register(bot, history):
             bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
 
         elif call.data == "user_edit_recharge":
-            # إعادة الخطوات للمستخدم لإدخال رقم الإشعار والمبلغ من جديد
             if user_id in recharge_requests:
                 recharge_requests[user_id].pop("amount", None)
                 recharge_requests[user_id].pop("ref", None)
+                logging.info(f"[RECHARGE][{user_id}] تعديل طلب الشحن")
                 bot.send_message(
                     user_id,
                     "🔄 يمكنك الآن إدخال رقم الإشعار / رمز العملية من جديد:",
@@ -235,12 +237,12 @@ def register(bot, history):
 
         elif call.data == "user_cancel_recharge":
             clear_pending_request(user_id)
+            logging.info(f"[RECHARGE][{user_id}] ألغى طلب الشحن نهائياً")
             bot.send_message(
                 user_id,
                 "❌ تم إلغاء الطلب، يمكنك البدء من جديد.",
                 reply_markup=keyboards.recharge_menu()
             )
-            # العودة لاختيار طريقة الشحن من جديد
             fake_msg = SimpleNamespace()
             fake_msg.from_user = SimpleNamespace()
             fake_msg.from_user.id = user_id
@@ -249,4 +251,4 @@ def register(bot, history):
             start_recharge_menu(bot, fake_msg, history)
             bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
 
-# === نهاية الملف ===
+# نهاية الملف
