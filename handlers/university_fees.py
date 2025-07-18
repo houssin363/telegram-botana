@@ -1,6 +1,6 @@
 # handlers/university_fees.py
 from telebot import types
-from services.wallet_service import has_sufficient_balance, deduct_balance, get_balance
+from services.wallet_service import add_purchase, has_sufficient_balance
 from config import ADMIN_MAIN_ID
 from handlers.wallet import register_user_if_not_exist
 from handlers import keyboards
