@@ -1,6 +1,7 @@
 from telebot import types
 from config import ADMIN_MAIN_ID
 from services.wallet_service import add_purchase, has_sufficient_balance
+import logging
 
 user_wholesale_state = {}
 
