@@ -1,3 +1,4 @@
+# database/db.py
 from supabase import create_client, Client
 
 SUPABASE_URL = "https://azortroeejjomqweintc.supabase.co"
