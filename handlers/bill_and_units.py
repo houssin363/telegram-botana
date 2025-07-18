@@ -1,7 +1,6 @@
 from telebot import types
 import math  # added for pagination support
-
-from services.wallet_service import has_sufficient_balance, deduct_balance, get_balance
+from services.wallet_service import add_purchase, has_sufficient_balance
 from config import ADMIN_MAIN_ID
 
 # --- قوائم المنتجات (وحدات) وأسعارها (لم يتم تعديل القيم) ---
