@@ -7,6 +7,7 @@ from services.wallet_service import (
     register_user_if_not_exist,  # ✅ الاستيراد الصحيح
     _select_single,  # لاستعماله في التحقق من العميل
 )
+import logging
 
 transfer_steps = {}
 
