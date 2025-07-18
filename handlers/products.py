@@ -3,7 +3,7 @@ from handlers.wallet import register_user_if_not_exist
 from config import BOT_NAME
 from handlers import keyboards
 from database.models.product import Product
-from services.wallet_service import has_sufficient_balance, deduct_balance, get_balance
+from services.wallet_service import get_all_products, get_product_by_id, add_purchase
 
 # استدعاء عميل supabase
 from database.db import client
