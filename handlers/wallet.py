@@ -2,8 +2,8 @@ from telebot import types
 from config import BOT_NAME
 from handlers import keyboards
 from services.wallet_service import (
-    get_balance, get_purchases, get_transfers,
-    has_sufficient_balance, transfer_balance, get_table,
+    get_balance, add_balance, deduct_balance, get_purchases, get_transfers,
+    has_sufficient_balance, get_deposit_transfers, transfer_balance, get_table,
     register_user_if_not_exist,  # ✅ الاستيراد الصحيح
     _select_single,  # لاستعماله في التحقق من العميل
 )
