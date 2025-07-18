@@ -170,8 +170,7 @@ def cash_root(message):
     bot.send_message(
         message.chat.id,
         "اختر نوع التحويل:",
-        reply_markup=kb.cash_transfer_menu()   # القائمة الفرعية الجاهزة
-    )
+        reply_markup=kb.cash_root_menu()
 
 # ========== زر شركة الهرم ==========
 @bot.message_handler(func=lambda m: m.text == "شركة الهرم")
