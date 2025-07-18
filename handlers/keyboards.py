@@ -14,7 +14,7 @@ def main_menu():
 
 def products_menu():
    # row_width=3 يجعل تيليجرام يضع 3 أزرار في كل صف
-   markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
+   markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
 
    # الأزرار الرئيسية (تُقسَّم تلقائياً إلى صفوف ثلاثة‑ثلاثة)
    buttons = [
