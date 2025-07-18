@@ -123,7 +123,7 @@ def _speeds_inline_kb() -> types.InlineKeyboardMarkup:
 
 def _confirm_inline_kb() -> types.InlineKeyboardMarkup:
     kb = types.InlineKeyboardMarkup(row_width=2)
-    kb.add(types.InlineKeyboardButton("✅ إرسال للادمن", callback_data=CB_CONFIRM))
+    kb.add(types.InlineKeyboardButton("✅ تأكيد", callback_data=CB_CONFIRM))
     kb.add(types.InlineKeyboardButton("⬅️ تعديل", callback_data=CB_BACK_SPEED))
     kb.add(types.InlineKeyboardButton("❌ إلغاء", callback_data=CB_CANCEL))
     return kb
