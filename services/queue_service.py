@@ -36,3 +36,15 @@ def process_queue(bot):
         else:
             # إذا لا يوجد طلبات، انتظر دقيقة ثم تحقق مجددًا
             time.sleep(60)
+            # services/queue_service.py (أضف في آخر الملف)
+def add_pending_request(user_id, username, request_text):
+    """
+    حفظ الطلب في قاعدة البيانات فور وصوله من العميل.
+    """
+    table = get_table("pending_requests")
+    table.insert({
+        "user_id": user_id,
+        "username": username,
+        "request_text": request_text,
+    }).execute()
+
