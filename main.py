@@ -2,8 +2,10 @@ import os
 import sys
 import logging
 import telebot
+from telebot import types                 # لكي تستخدم types في main.py
+from handlers import keyboards as kb      # هذا يجعل kb معروفاً
 from config import API_TOKEN
-from handlers import keyboards as kb
+
 
 # =============== Dummy HTTP Server to Open Port ================
 import threading
@@ -170,8 +172,9 @@ def cash_root(message):
     bot.send_message(
         message.chat.id,
         "اختر نوع التحويل:",
-        reply_markup=kb.cash_root_menu()
-
+        reply_markup=kb.cash_root_menu()   # ← القائمة الجديدة
+    )
+    
 # ========== زر شركة الهرم ==========
 @bot.message_handler(func=lambda m: m.text == "شركة الهرم")
 def handle_al_haram(m):
