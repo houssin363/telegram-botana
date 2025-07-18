@@ -37,10 +37,29 @@ def _unhandled_exception_hook(exc_type, exc_value, exc_tb):
 sys.excepthook = _unhandled_exception_hook
 
 # ---------------------------------------------------------
+# ✅ فحص صحة API_TOKEN وجلب هوية البوت قبل التشغيل
+# ---------------------------------------------------------
+def check_api_token(token):
+    try:
+        test_bot = telebot.TeleBot(token)
+        me = test_bot.get_me()
+        print(f"✅ التوكن سليم. هوية البوت: @{me.username} (ID: {me.id})")
+        return True
+    except Exception as e:
+        logging.critical(f"❌ التوكن غير صالح أو لا يمكن الاتصال بـ Telegram API: {e}")
+        sys.exit(1)
+
+if not check_api_token(API_TOKEN):
+    sys.exit(1)
+
+# ---------------------------------------------------------
 # 1) إنشاء كائن البوت ثم حذف أي Webhook سابق لتجنّب خطأ 409
 # ---------------------------------------------------------
 bot = telebot.TeleBot(API_TOKEN)
-bot.delete_webhook(drop_pending_updates=True)
+try:
+    bot.delete_webhook(drop_pending_updates=True)
+except Exception as e:
+    logging.warning(f"⚠️ لم يتم حذف Webhook بنجاح: {e}")
 
 # ---------------------------------------------------------
 # 2) استيراد جميع الهاندلرز بعد تهيئة البوت
@@ -219,20 +238,47 @@ def handle_shakhashir(msg):
     user_state[msg.from_user.id] = "shakhashir_start"
 
 # ---------------------------------------------------------
-# 7) تشغيل البوت
+# 7) تشغيل البوت مع نظام إعادة المحاولة والتنبيه في حال الخطأ
 # ---------------------------------------------------------
-print("🤖 البوت يعمل الآن…")
+import time
 
-try:
-    bot.infinity_polling(
-        none_stop=True,
-        skip_pending=True,
-        long_polling_timeout=40,
-    )
-except telebot.apihelper.ApiTelegramException as e:
-    if getattr(e, "error_code", None) == 409:
-        logging.critical("❌ تم إيقاف هذه النسخة لأن نسخة أخرى من البوت متصلة بالفعل.")
-    else:
-        raise
+def restart_bot():
+    """إعادة تشغيل البوت بعد حدوث خطأ قاتل."""
+    logging.warning("🔄 إعادة تشغيل البوت بعد 10 ثوانٍ…")
+    time.sleep(10)
+    os.execv(sys.executable, [sys.executable] + sys.argv)
+
+def start_polling():
+    print("🤖 البوت يعمل الآن…")
+    while True:
+        try:
+            bot.infinity_polling(
+                none_stop=True,
+                skip_pending=True,
+                long_polling_timeout=40,
+            )
+        except telebot.apihelper.ApiTelegramException as e:
+            if getattr(e, "error_code", None) == 409:
+                logging.critical("❌ تم إيقاف هذه النسخة لأن نسخة أخرى من البوت متصلة بالفعل.")
+                break
+            else:
+                logging.error(f"🚨 خطأ في Telegram API: {e}")
+                time.sleep(5)
+                continue
+        except Exception as e:
+            logging.critical(f"❌ خطأ غير متوقع، سيُعاد تشغيل البوت: {e}")
+            restart_bot()
+            break
+
+start_polling()
 
 import scheduled_tasks  # لإطلاق المهام الدورية تلقائيًا عند تشغيل البوت
+
+# ---------------------------------------------------------
+# (تنبيه حول الضغط العالي – فكرة للطوابير/queues)
+# ---------------------------------------------------------
+# إذا لاحظت بطء أو سقوط البوت عند ضغط شديد،
+# يمكنك استخدام مكتبة كطوابير الرسائل مثل queue.Queue أو celery
+# لفصل استقبال الرسائل عن معالجتها في عملية مستقلة.
+# ذلك متقدم جداً ويحتاج إعداد خادم خلفي غالباً.
+# ---------------------------------------------------------
