@@ -163,28 +163,34 @@ def handle_media(msg):
     from handlers.media_services import show_media_services
     show_media_services(bot, msg, user_state)
 
+# زر «تحويل كاش»
 @bot.message_handler(func=lambda m: m.text == "💵 تحويل كاش")
 def cash_root(message):
-    # ارسل قائمة فرعية تطلب منه اختيار نوع التحويل
     bot.send_message(
         message.chat.id,
         "اختر نوع التحويل:",
-        reply_markup=kb.cash_transfer_menu()      # أو أي قائمة أخرى تريدها
+        reply_markup=kb.cash_transfer_menu()   # القائمة الفرعية الجاهزة
     )
-    
-# ================== أزرار الشركات الجديدة ======================
-@bot.message_handler(func=lambda msg: msg.text == "شركة الهرم")
-def handle_al_haram(msg):
+
+# ========== زر شركة الهرم ==========
+@bot.message_handler(func=lambda m: m.text == "شركة الهرم")
+def handle_al_haram(m):
+    # لوحة التأكيد / الإلغاء
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(
+        types.KeyboardButton("✔️ تأكيد حوالة الهرم"),
+        types.KeyboardButton("❌ إلغاء")
+    )
+
     bot.send_message(
-        msg.chat.id,
-        "💸 هذه الخدمة تخولك إلى استلام حوالتك المالية عبر **شركة الهرم**.\n"
-        "يتم إضافة مبلغ 1500 ل.س على كل 50000 ل.س.\n\n"
+        m.chat.id,
+        "💸 هذه الخدمة تخوّلك استلام حوالتك عبر **شركة الهرم**.\n"
+        "يُضاف 1500 ل.س على كل 50000 ل.س.\n\n"
         "تابع العملية أو ألغِ الطلب.",
-        reply_markup=telebot.types.ReplyKeyboardMarkup(resize_keyboard=True).add(
-            "✔️ تأكيد حوالة الهرم", "❌ إلغاء"
-        )
+        reply_markup=markup
     )
-    user_state[msg.from_user.id] = "alharam_start"
+
+    user_state[m.from_user.id] = "alharam_start"
 
 @bot.message_handler(func=lambda msg: msg.text == "شركة الفؤاد")
 def handle_alfouad(msg):
