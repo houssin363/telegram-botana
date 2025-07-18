@@ -95,7 +95,7 @@ bill_and_units.register_bill_and_units(bot, user_state)
 products.register(bot, user_state)
 media_services.register(bot, user_state)
 wholesale.register(bot, user_state)
-university_fees.register(bot, user_state)
+university_fees.register_university_fees(bot, history)
 internet_providers.register(bot)
 
 # ---------------------------------------------------------
