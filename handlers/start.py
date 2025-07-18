@@ -1,17 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-start.py  (مع زر ستارت + متابعة القناة عبر InlineKeyboard)
------------------------------------------------------------
-تم تلبية الطلب: إضافة زر *ستارت* في رسالة الترحيب، وكذلك في رسالة
-متابعة/الاشتراك بالقناة (Force Subscribe).
+start.py  (ستارت ينظّف العمليات المعلّقة + زر جديد)
+================================================
+- زر ستارت جديد (يمكن تعديل النص عبر START_BTN_TEXT).
+- لوحة الاشتراك تفصل بين زر الاشتراك وزر ستارت.
+- عند ضغط ستارت: يتم تنظيف أي عمليات معلّقة للمستخدم (مثال: طلبات مزودي الإنترنت).
+  * يحذف user_net_state و pending_orders (إن وُجِدت) من handlers.internet_providers.
+  * لا يُرسل إشعار للأدمن؛ يُعامَل الأمر كأن المستخدم لم يُكمل العملية.
+- باقي التدفق كما في الملف السابق.  (مصدر: الملف الأصلي).
 
-التدفق:
-  /start  -> فحص الاشتراك (إن طُلب) ->
-      - غير مشترك: رسالة اشتراك + زرين: [اشترك الآن - URL] [✅ تم الاشتراك | ستارت]
-      - مشترك: رسالة ترحيب + زر [🚀 ستارت]
-  الضغط على ستارت (callback) يسجل المستخدم (إن لم يكن مسجل) ويدخل القائمة الرئيسية.
-
-تم الحفاظ على بقية الكود (رسائل نصية قديمة) للتوافق العكسي.
 """
 
 from telebot import types
@@ -20,29 +17,80 @@ from config import BOT_NAME, FORCE_SUB_CHANNEL_USERNAME
 from services.wallet_service import register_user_if_not_exist  # هذا مهم
 
 # --------------------------
+# إعدادات واجهة قابلة للتعديل
+# --------------------------
+START_BTN_TEXT = "🚀 ستارت جديد"  # غيّر الشكل/النص كما تريد
+START_BTN_TEXT_SUB = "✅ تم الاشتراك"  # زر فحص الاشتراك
+SUB_BTN_TEXT = "🔔 اشترك الآن في القناة"
+
+
+# --------------------------
 # مفاتيح Callback جديدة
 # --------------------------
 CB_START = "cb_start_main"
 CB_CHECK_SUB = "cb_check_sub"
 
+
+# --------------------------
+# تنظيف العمليات المعلّقة (Best Effort)
+# --------------------------
+def _reset_user_flows(user_id: int):
+    """حذف أي حالات/طلبات غير مكتملة تخص المستخدم.
+
+    حاليًا يدعم:
+    - handlers.internet_providers.user_net_state
+    - handlers.internet_providers.pending_orders (إن وُجد؛ يعتمد على نسخة الملف)
+    لا تُرسل رسائل للأدمن؛ يُعامل كإلغاء صامت.
+    """
+    try:
+        from handlers import internet_providers
+    except Exception:
+        return
+
+    # حذف حالة تفاعلية
+    try:
+        internet_providers.user_net_state.pop(user_id, None)
+    except Exception:
+        pass
+
+    # حذف أي طلبات معلّقة تخص المستخدم
+    try:
+        po = getattr(internet_providers, "pending_orders", None)
+        if isinstance(po, dict):
+            for oid in list(po.keys()):
+                try:
+                    if po[oid].get("user_id") == user_id:
+                        po.pop(oid, None)
+                except Exception:
+                    continue
+    except Exception:
+        pass
+
+
+# --------------------------
+# لوحات Inline
+# --------------------------
 def _sub_inline_kb():
-    """لوحة اشتراك بالقناة + زر ستارت لإعادة الفحص."""
-    kb = types.InlineKeyboardMarkup()
+    """لوحة اشتراك بالقناة + زر فحص اشتراك + ستارت."""
+    kb = types.InlineKeyboardMarkup(row_width=1)
     # رابط الاشتراك
     if FORCE_SUB_CHANNEL_USERNAME:
         kb.add(
             types.InlineKeyboardButton(
-                "🔔 اشترك الآن في القناة",
+                SUB_BTN_TEXT,
                 url=f"https://t.me/{FORCE_SUB_CHANNEL_USERNAME[1:]}"  # إزالة @
             )
         )
-    # زر ستارت (إعادة التحقق / متابعة)
-    kb.add(types.InlineKeyboardButton("✅ تم الاشتراك | ستارت", callback_data=CB_CHECK_SUB))
+    # زر فحص الاشتراك
+    kb.add(types.InlineKeyboardButton(START_BTN_TEXT_SUB, callback_data=CB_CHECK_SUB))
+    # زر ستارت مباشر (قد يستخدمه البعض بعد الاشتراك أو لتجاهل الرسالة)
+    kb.add(types.InlineKeyboardButton(START_BTN_TEXT, callback_data=CB_START))
     return kb
 
+
 def _welcome_inline_kb():
-    kb = types.InlineKeyboardMarkup()
-    kb.add(types.InlineKeyboardButton("🚀 ستارت", callback_data=CB_START))
+    kb = types.InlineKeyboardMarkup(row_width=1)
+    kb.add(types.InlineKeyboardButton(START_BTN_TEXT, callback_data=CB_START))
     return kb
 
 
@@ -51,6 +99,10 @@ def register(bot, user_history):
     @bot.message_handler(commands=['start'])
     def send_welcome(message):
         user_id = message.from_user.id
+
+        # التنظيف قبل أي شيء
+        _reset_user_flows(user_id)
+
         # التحقق من الاشتراك إذا كان مفعّلاً
         if FORCE_SUB_CHANNEL_USERNAME:
             try:
@@ -81,12 +133,15 @@ def register(bot, user_history):
 
 
     # ---------------------------------------
-    # Callback: إعادة فحص الاشتراك / ستارت
+    # Callback: إعادة فحص الاشتراك
     # ---------------------------------------
     @bot.callback_query_handler(func=lambda c: c.data == CB_CHECK_SUB)
     def cb_check_subscription(call):
         user_id = call.from_user.id
-        # فحص مرة أخرى
+
+        # التنظيف (فور الضغط)
+        _reset_user_flows(user_id)
+
         if FORCE_SUB_CHANNEL_USERNAME:
             try:
                 status = bot.get_chat_member(FORCE_SUB_CHANNEL_USERNAME, user_id).status
@@ -109,12 +164,16 @@ def register(bot, user_history):
 
 
     # ---------------------------------------
-    # Callback: ستارت (إدخال القائمة الرئيسية)
+    # Callback: ستارت (إدخال القائمة الرئيسية + تنظيف)
     # ---------------------------------------
     @bot.callback_query_handler(func=lambda c: c.data == CB_START)
     def cb_start_main(call):
         user_id = call.from_user.id
         name = getattr(call.from_user, "full_name", None) or call.from_user.first_name
+
+        # تنظيف العمليات المعلّقة قبل الدخول
+        _reset_user_flows(user_id)
+
         register_user_if_not_exist(user_id, name)
         bot.answer_callback_query(call.id)
         bot.send_message(
@@ -130,7 +189,11 @@ def register(bot, user_history):
     @bot.message_handler(func=lambda msg: msg.text == "🚀 ابدأ بالتسوق العالمي")
     def enter_main_menu(msg):
         user_id = msg.from_user.id
-        name = msg.from_user.full_name if hasattr(msg.from_user, "full_name") else msg.from_user.first_name
+        name = getattr(msg.from_user, "full_name", None) or msg.from_user.first_name
+
+        # تنظيف
+        _reset_user_flows(user_id)
+
         register_user_if_not_exist(user_id, name)
         bot.send_message(
             msg.chat.id,
@@ -160,6 +223,7 @@ def register(bot, user_history):
 
     @bot.message_handler(func=lambda msg: msg.text == "⬅️ رجوع")
     def go_back(msg):
+        _reset_user_flows(msg.from_user.id)
         bot.send_message(msg.chat.id, "⬅️ تم الرجوع للقائمة الرئيسية", reply_markup=keyboards.main_menu())
 
 
