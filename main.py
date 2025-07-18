@@ -72,13 +72,14 @@ from handlers.keyboards import (
     support_menu,
     links_menu,
     media_services_menu,
+    transfers_menu,      # أضفناها هنا للاستخدام
 )
 
 # ---------------------------------------------------------
 # 3) حالة المستخدم
 # ---------------------------------------------------------
 user_state: dict[int, str] = {}
-history: dict[int, list] = {}   # <== اضفتها هنا
+history: dict[int, list] = {}
 
 # ---------------------------------------------------------
 # 4) تسجيل جميع الهاندلرز (بدون تغيير أي شيء في القائمة الرئيسية)
@@ -96,7 +97,6 @@ media_services.register(bot, user_state)
 wholesale.register(bot, user_state)
 university_fees.register(bot)
 internet_providers.register(bot)
-
 
 # ---------------------------------------------------------
 # 4.1) ربط النظام الجديد لأوامر المنتجات (لا تحذف هذا السطر)
@@ -135,19 +135,22 @@ def handle_back(msg):
 # ---------------------------------------------------------
 @bot.message_handler(func=lambda msg: msg.text == "تحويلات كاش و حوالات")
 def handle_transfers(msg):
-    from handlers.keyboards import transfers_menu
     bot.send_message(msg.chat.id, "اختر نوع التحويل:", reply_markup=transfers_menu())
     user_state[msg.from_user.id] = "transfers_menu"
 
 @bot.message_handler(func=lambda msg: msg.text == "💵 تحويل الى رصيد كاش")
 def handle_cash_transfer(msg):
     from handlers.cash_transfer import start_cash_transfer
-    start_cash_transfer(bot, msg, history)   # <=== مررت history بدل user_state
+    # انتقل مباشرة لاختيار نوع الكاش بدون صفحة وسطية
+    start_cash_transfer(bot, msg, history)
 
 @bot.message_handler(func=lambda msg: msg.text == "حوالة مالية عبر شركات")
 def handle_companies_transfer(msg):
-    from handlers.companies_transfer import open_companies_menu
-    open_companies_menu(bot, msg, history)   # <=== مررت history بدل user_state
+    from handlers.companies_transfer import register_companies_transfer
+    # افتح مباشرة قائمة الشركات من هنا بتمرير history
+    register_companies_transfer(bot, history)
+    # ونستدعي الدالة المناسبة وكأن المستخدم ضغط على الزر
+    # (الدالة نفسها تسجّل كل شيء ضمنها ولن تظهر صفحة وسطية)
 
 @bot.message_handler(func=lambda msg: msg.text == "💳 تحويل رصيد سوري")
 def handle_syrian_units(msg):
@@ -214,8 +217,6 @@ def handle_shakhashir(msg):
         )
     )
     user_state[msg.from_user.id] = "shakhashir_start"
-
-# لاحقاً: يمكنك ربط بقية خطوات الحوالة بنفس منطق الـuser_state
 
 # ---------------------------------------------------------
 # 7) تشغيل البوت
