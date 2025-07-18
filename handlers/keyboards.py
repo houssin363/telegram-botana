@@ -13,25 +13,62 @@ def main_menu():
     return markup
 
 
-def products_menu():
-    # row_width=2 ⇒ تيليجرام سيضع زرين في كل صف
+def products_menu(page: int = 1) -> types.ReplyKeyboardMarkup:
+    """
+    page = 1 ➜ الصفحة الأولى
+    page = 2 ➜ الصفحة الثانية
+    """
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
 
-    buttons = [
-        types.KeyboardButton("🎮 شحن ألعاب و تطبيقات"),
-        types.KeyboardButton("💳 تحويل وحدات فاتورة سوري"),
-        types.KeyboardButton("🌐 دفع مزودات الإنترنت ADSL"),
-        types.KeyboardButton("🎓 دفع رسوم جامعية"),
-        types.KeyboardButton("حوالة مالية عبر شركات"),
-        types.KeyboardButton("💵 تحويل الى رصيد كاش"),
-        types.KeyboardButton("🖼️ خدمات إعلانية وتصميم"),
+    # محتوى كل صفحة
+    page1 = [
+        "🎮 شحن ألعاب و تطبيقات",
+        "💳 تحويل وحدات فاتورة سوري",
+        "🌐 دفع مزودات الإنترنت ADSL",
+        "🎓 دفع رسوم جامعية",
+        "➡️ التالي",                 # زر الانتقال للصفحة 2
     ]
-    markup.add(*buttons)
 
-    # زر «رجوع» في صف مستقل
-    markup.add(types.KeyboardButton("⬅️ رجوع"))
+    page2 = [
+        "حوالة مالية عبر شركات",
+        "💵 تحويل الى رصيد كاش",
+        "🖼️ خدمات إعلانية وتصميم",
+        "⬅️ السابق",                 # رجوع للصفحة 1
+    ]
 
+    buttons = page1 if page == 1 else page2
+    markup.add(*(types.KeyboardButton(b) for b in buttons))
     return markup
+
+# -------------------------------------------------
+# معالجات البوت
+# -------------------------------------------------
+@bot.message_handler(commands=["products"])
+def send_products(message):
+    """إرسال الصفحة الأولى عند أمر /products"""
+    bot.send_message(
+        message.chat.id,
+        "اختر خدمة:",
+        reply_markup=products_menu(page=1)
+    )
+
+# زر «التالي» ⇠ انتقل للصفحة 2
+@bot.message_handler(func=lambda m: m.text == "➡️ التالي")
+def next_page(message):
+    bot.send_message(
+        message.chat.id,
+        "صفحة ٢/٢:",
+        reply_markup=products_menu(page=2)
+    )
+
+# زر «السابق» ⇠ ارجع للصفحة 1
+@bot.message_handler(func=lambda m: m.text == "⬅️ السابق")
+def prev_page(message):
+    bot.send_message(
+        message.chat.id,
+        "صفحة ١/٢:",
+        reply_markup=products_menu(page=1)
+    )
     
 def game_categories():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
