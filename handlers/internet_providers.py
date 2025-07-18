@@ -59,27 +59,35 @@ CB_CANCEL = "icancel"          # إلغاء
 #   توليد لوحات Inline
 # ============================
 def _provider_inline_kb() -> types.InlineKeyboardMarkup:
+    """لوحة اختيار مزوّد (telebot لا يوفّر insert؛ نستخدم add(*buttons))."""
     kb = types.InlineKeyboardMarkup(row_width=2)
+    buttons = []
     for name in INTERNET_PROVIDERS:
-        kb.insert(
+        buttons.append(
             types.InlineKeyboardButton(
                 text=f"🌐 {name}",
                 callback_data=f"{CB_PROV_PREFIX}:{name}"
             )
         )
+    if buttons:
+        kb.add(*buttons)  # telebot يقوم بتوزيعها حسب row_width
     kb.add(types.InlineKeyboardButton("❌ إلغاء", callback_data=CB_CANCEL))
     return kb
 
 
 def _speeds_inline_kb() -> types.InlineKeyboardMarkup:
+    """لوحة اختيار السرعة."""
     kb = types.InlineKeyboardMarkup(row_width=2)
+    buttons = []
     for idx, speed in enumerate(INTERNET_SPEEDS):
-        kb.insert(
+        buttons.append(
             types.InlineKeyboardButton(
                 text=f"{speed['label']} - {speed['price']:,} ل.س",
                 callback_data=f"{CB_SPEED_PREFIX}:{idx}"
             )
         )
+    if buttons:
+        kb.add(*buttons)
     kb.add(types.InlineKeyboardButton("⬅️ رجوع", callback_data=CB_BACK_PROV))
     return kb
 
