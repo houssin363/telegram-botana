@@ -132,10 +132,13 @@ def handle_back(msg):
 # ---------------------------------------------------------
 # 6) ربط أزرار المنتجات بالخدمات الخاصة بها
 # ---------------------------------------------------------
-@bot.message_handler(func=lambda msg: msg.text == "💵 تحويل الى رصيد كاش")
-def handle_cash_transfer(msg):
-    from handlers.cash_transfer import start_cash_transfer
-    start_cash_transfer(bot, msg, user_state)
+@bot.message_handler(func=lambda msg: msg.text == "تحويلات كاش و حوالات")
+def handle_transfers(msg):
+    from handlers.keyboards import transfers_menu
+    bot.send_message(msg.chat.id, "اختر نوع التحويل:", reply_markup=transfers_menu())
+    user_state[msg.from_user.id] = "transfers_menu"
+
+
 
 @bot.message_handler(func=lambda msg: msg.text == "💳 تحويل رصيد سوري")
 def handle_syrian_units(msg):
@@ -189,12 +192,6 @@ def handle_alfouad(msg):
         )
     )
     user_state[msg.from_user.id] = "alfouad_start"
-
-@bot.message_handler(func=lambda msg: msg.text == "تحويلات كاش و حوالات")
-def handle_transfers(msg):
-    from handlers.keyboards import transfers_menu
-    bot.send_message(msg.chat.id, "اختر نوع التحويل:", reply_markup=transfers_menu())
-    user_state[msg.from_user.id] = "transfers_menu"
 
 
 @bot.message_handler(func=lambda msg: msg.text == "شركة شخاشير")
