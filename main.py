@@ -3,6 +3,7 @@ import sys
 import logging
 import telebot
 from config import API_TOKEN
+from handlers import keyboards as kb
 
 # =============== Dummy HTTP Server to Open Port ================
 import threading
