@@ -12,27 +12,27 @@ def main_menu():
     )
     return markup
 
+
 def products_menu():
-   # row_width=3 يجعل تيليجرام يضع 3 أزرار في كل صف
-   markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    # row_width=2 ⇒ تيليجرام سيضع زرين في كل صف
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
 
-   # الأزرار الرئيسية (تُقسَّم تلقائياً إلى صفوف ثلاثة‑ثلاثة)
-   buttons = [
-       types.KeyboardButton("🎮 شحن ألعاب و تطبيقات"),
-       types.KeyboardButton("💳 تحويل وحدات فاتورة سوري"),
-       types.KeyboardButton("🌐 دفع مزودات الإنترنت ADSL"),
-       types.KeyboardButton("🎓 دفع رسوم جامعية"),
-       types.KeyboardButton("حوالة مالية عبر شركات"),
-       types.KeyboardButton("💵 تحويل الى رصيد كاش"),
-       types.KeyboardButton("🖼️ خدمات إعلانية وتصميم"),
-   ]
-   markup.add(*buttons)
+    buttons = [
+        types.KeyboardButton("🎮 شحن ألعاب و تطبيقات"),
+        types.KeyboardButton("💳 تحويل وحدات فاتورة سوري"),
+        types.KeyboardButton("🌐 دفع مزودات الإنترنت ADSL"),
+        types.KeyboardButton("🎓 دفع رسوم جامعية"),
+        types.KeyboardButton("حوالة مالية عبر شركات"),
+        types.KeyboardButton("💵 تحويل الى رصيد كاش"),
+        types.KeyboardButton("🖼️ خدمات إعلانية وتصميم"),
+    ]
+    markup.add(*buttons)
 
-   # زر الرجوع في صف مستقل
-   markup.add(types.KeyboardButton("⬅️ رجوع"))
+    # زر «رجوع» في صف مستقل
+    markup.add(types.KeyboardButton("⬅️ رجوع"))
 
-   return markup
-
+    return markup
+    
 def game_categories():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
     markup.add(
