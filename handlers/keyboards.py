@@ -1,4 +1,5 @@
 from telebot import types
+import logging
 
 def main_menu():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
