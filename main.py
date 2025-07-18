@@ -163,6 +163,15 @@ def handle_media(msg):
     from handlers.media_services import show_media_services
     show_media_services(bot, msg, user_state)
 
+@bot.message_handler(func=lambda m: m.text == "💵 تحويل كاش")
+def cash_root(message):
+    # ارسل قائمة فرعية تطلب منه اختيار نوع التحويل
+    bot.send_message(
+        message.chat.id,
+        "اختر نوع التحويل:",
+        reply_markup=kb.cash_transfer_menu()      # أو أي قائمة أخرى تريدها
+    )
+    
 # ================== أزرار الشركات الجديدة ======================
 @bot.message_handler(func=lambda msg: msg.text == "شركة الهرم")
 def handle_al_haram(msg):
