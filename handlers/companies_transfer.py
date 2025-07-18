@@ -22,16 +22,15 @@ def make_inline_buttons(*buttons):
         kb.add(types.InlineKeyboardButton(text, callback_data=data))
     return kb
 
+# هنا التعديل: قائمة الشركات الآن InlineKeyboardButton
 def companies_transfer_menu():
-    kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    kb = types.InlineKeyboardMarkup(row_width=1)
     kb.add(
-        types.KeyboardButton("شركة الهرم"),
-        types.KeyboardButton("شركة الفؤاد"),
-        types.KeyboardButton("شركة شخاشير"),
-    )
-    kb.add(
-        types.KeyboardButton("⬅️ رجوع"),
-        types.KeyboardButton("🔄 ابدأ من جديد")
+        types.InlineKeyboardButton("شركة الهرم", callback_data="company_alharam"),
+        types.InlineKeyboardButton("شركة الفؤاد", callback_data="company_alfouad"),
+        types.InlineKeyboardButton("شركة شخاشير", callback_data="company_shakhashir"),
+        types.InlineKeyboardButton("⬅️ رجوع", callback_data="back"),
+        types.InlineKeyboardButton("🔄 ابدأ من جديد", callback_data="restart")
     )
     return kb
 
@@ -45,14 +44,18 @@ def register_companies_transfer(bot, history):
         history.setdefault(user_id, []).append("companies_menu")
         bot.send_message(msg.chat.id, "💸 اختر الشركة التي تريد التحويل عبرها:", reply_markup=companies_transfer_menu())
 
-    @bot.message_handler(func=lambda msg: msg.text in [
-        "شركة الهرم",
-        "شركة الفؤاد",
-        "شركة شخاشير"
+    # هذه الهاندلرات تم تعديلها لتتعامل مع inline buttons
+    @bot.callback_query_handler(func=lambda call: call.data in [
+        "company_alharam", "company_alfouad", "company_shakhashir"
     ])
-    def select_company(msg):
-        user_id = msg.from_user.id
-        company = msg.text
+    def select_company(call):
+        user_id = call.from_user.id
+        company_map = {
+            "company_alharam": "شركة الهرم",
+            "company_alfouad": "شركة الفؤاد",
+            "company_shakhashir": "شركة شخاشير"
+        }
+        company = company_map[call.data]
         user_states[user_id] = {"step": "show_commission", "company": company}
         history.setdefault(user_id, []).append("companies_menu")
         text = (
@@ -64,7 +67,7 @@ def register_companies_transfer(bot, history):
             ("✅ موافق", "company_commission_confirm"),
             ("❌ إلغاء", "company_commission_cancel")
         )
-        bot.send_message(msg.chat.id, text, reply_markup=kb)
+        bot.edit_message_text(text, call.message.chat.id, call.message.message_id, reply_markup=kb)
 
     @bot.callback_query_handler(func=lambda call: call.data == "company_commission_cancel")
     def company_commission_cancel(call):
