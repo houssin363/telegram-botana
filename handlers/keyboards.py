@@ -12,16 +12,26 @@ def main_menu():
     )
     return markup
 
- def products_menu():
-     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
-     markup.add(
-         types.KeyboardButton("🎮 شحن ألعاب و تطبيقات"),
-         types.KeyboardButton("💳 تحويل وحدات فاتورة سوري"),
-         types.KeyboardButton("🌐 دفع مزودات الإنترنت ADSL"),
-         types.KeyboardButton("🎓 دفع رسوم جامعية"),
-         types.KeyboardButton("تحويلات كاش و حوالات"),
-         types.KeyboardButton("⬅️ رجوع")
-    ) 
+def products_menu():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup.add(
+        types.KeyboardButton("🎮 شحن ألعاب و تطبيقات"),
+        types.KeyboardButton("💳 تحويل وحدات فاتورة سوري"),
+        types.KeyboardButton("🌐 دفع مزودات الإنترنت ADSL"),
+        types.KeyboardButton("🎓 دفع رسوم جامعية"),
+        types.KeyboardButton("تحويلات كاش و حوالات"),  # الزر الجديد المدمج
+        types.KeyboardButton("⬅️ رجوع")
+    )
+    return markup
+
+# قائمة التحويلات المدمجة
+def transfers_menu():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup.add(
+        types.KeyboardButton("💵 تحويل الى رصيد كاش"),
+        types.KeyboardButton("حوالة مالية عبر شركات"),
+        types.KeyboardButton("⬅️ رجوع")
+    )
     return markup
 
 def game_categories():
@@ -33,16 +43,6 @@ def game_categories():
         types.KeyboardButton("⬅️ رجوع")
     )
     return markup
-    
-def transfers_menu():
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
-    markup.add(
-        types.KeyboardButton("💵 تحويل الى رصيد كاش"),
-        types.KeyboardButton("حوالة مالية عبر شركات"),
-        types.KeyboardButton("⬅️ رجوع")
-    )
-    return markup
-   
 
 def recharge_menu():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
