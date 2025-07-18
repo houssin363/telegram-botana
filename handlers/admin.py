@@ -1,7 +1,11 @@
 from telebot import types
 from datetime import datetime
 from config import ADMINS, ADMIN_MAIN_ID
-from services.wallet_service import register_user_if_not_exist, add_balance, deduct_balance
+from services.wallet_service import (
+    get_all_products, get_product_by_id, get_balance, get_purchases, get_deposit_transfers
+)
+from services.cleanup_service import delete_inactive_users
+from services.recharge_service import validate_recharge_code
 import logging          # ← إضافة لتسجيل الأخطاء في Render
 import json
 import os
