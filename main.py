@@ -160,16 +160,12 @@ def handle_transfers(msg):
 @bot.message_handler(func=lambda msg: msg.text == "💵 تحويل الى رصيد كاش")
 def handle_cash_transfer(msg):
     from handlers.cash_transfer import start_cash_transfer
-    # انتقل مباشرة لاختيار نوع الكاش بدون صفحة وسطية
     start_cash_transfer(bot, msg, history)
 
 @bot.message_handler(func=lambda msg: msg.text == "حوالة مالية عبر شركات")
 def handle_companies_transfer(msg):
     from handlers.companies_transfer import register_companies_transfer
-    # افتح مباشرة قائمة الشركات من هنا بتمرير history
     register_companies_transfer(bot, history)
-    # ونستدعي الدالة المناسبة وكأن المستخدم ضغط على الزر
-    # (الدالة نفسها تسجّل كل شيء ضمنها ولن تظهر صفحة وسطية)
 
 @bot.message_handler(func=lambda msg: msg.text == "💳 تحويل رصيد سوري")
 def handle_syrian_units(msg):
@@ -236,6 +232,12 @@ def handle_shakhashir(msg):
         )
     )
     user_state[msg.from_user.id] = "shakhashir_start"
+
+# ---------------------------------------------------------
+# === تشغيل نظام الطابور (QUEUE) ===
+# ---------------------------------------------------------
+from services.queue_service import process_queue
+threading.Thread(target=process_queue, args=(bot,), daemon=True).start()
 
 # ---------------------------------------------------------
 # 7) تشغيل البوت مع نظام إعادة المحاولة والتنبيه في حال الخطأ
