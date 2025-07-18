@@ -1,5 +1,5 @@
+# services/notification_service.py
 # خدمة إرسال إشعارات للمستخدمين أو المسؤولين
-
 from config import ADMIN_MAIN_ID, ADMIN_MAIN_USERNAME
 
 def notify_admin(bot, text):
