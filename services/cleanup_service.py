@@ -1,3 +1,4 @@
+# services/cleanup_service.py
 from datetime import datetime, timedelta
 from database.db import get_table
 
@@ -15,4 +16,4 @@ def delete_inactive_users():
             table_users.delete().eq("user_id", user_id).execute()
             print(f"تم حذف المستخدم غير النشيط: {user_id}")
 
-# نفذها كل يوم بمهمة مجدولة
+# يمكنك تشغيلها يومياً تلقائياً عبر cron أو كود باكجراوند.
