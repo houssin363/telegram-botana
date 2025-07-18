@@ -85,7 +85,7 @@ history: dict[int, list] = {}
 # 4) تسجيل جميع الهاندلرز (بدون تغيير أي شيء في القائمة الرئيسية)
 # ---------------------------------------------------------
 start.register(bot, user_state)
-wallet.register(bot, user_state)
+wallet.register(bot, history)
 support.register(bot, user_state)
 admin.register(bot, user_state)
 recharge.register(bot, user_state)
