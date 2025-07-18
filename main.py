@@ -2,10 +2,7 @@ import os
 import sys
 import logging
 import telebot
-from telebot import types                 # لكي تستخدم types في main.py
-from handlers import keyboards as kb      # هذا يجعل kb معروفاً
 from config import API_TOKEN
-
 
 # =============== Dummy HTTP Server to Open Port ================
 import threading
@@ -166,34 +163,19 @@ def handle_media(msg):
     from handlers.media_services import show_media_services
     show_media_services(bot, msg, user_state)
 
-# زر «تحويل كاش»
-@bot.message_handler(func=lambda m: m.text == "💵 تحويل كاش")
-def cash_root(message):
+# ================== أزرار الشركات الجديدة ======================
+@bot.message_handler(func=lambda msg: msg.text == "شركة الهرم")
+def handle_al_haram(msg):
     bot.send_message(
-        message.chat.id,
-        "اختر نوع التحويل:",
-        reply_markup=kb.cash_root_menu()   # ← القائمة الجديدة
-    )
-    
-# ========== زر شركة الهرم ==========
-@bot.message_handler(func=lambda m: m.text == "شركة الهرم")
-def handle_al_haram(m):
-    # لوحة التأكيد / الإلغاء
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    markup.add(
-        types.KeyboardButton("✔️ تأكيد حوالة الهرم"),
-        types.KeyboardButton("❌ إلغاء")
-    )
-
-    bot.send_message(
-        m.chat.id,
-        "💸 هذه الخدمة تخوّلك استلام حوالتك عبر **شركة الهرم**.\n"
-        "يُضاف 1500 ل.س على كل 50000 ل.س.\n\n"
+        msg.chat.id,
+        "💸 هذه الخدمة تخولك إلى استلام حوالتك المالية عبر **شركة الهرم**.\n"
+        "يتم إضافة مبلغ 1500 ل.س على كل 50000 ل.س.\n\n"
         "تابع العملية أو ألغِ الطلب.",
-        reply_markup=markup
+        reply_markup=telebot.types.ReplyKeyboardMarkup(resize_keyboard=True).add(
+            "✔️ تأكيد حوالة الهرم", "❌ إلغاء"
+        )
     )
-
-    user_state[m.from_user.id] = "alharam_start"
+    user_state[msg.from_user.id] = "alharam_start"
 
 @bot.message_handler(func=lambda msg: msg.text == "شركة الفؤاد")
 def handle_alfouad(msg):
@@ -207,6 +189,13 @@ def handle_alfouad(msg):
         )
     )
     user_state[msg.from_user.id] = "alfouad_start"
+
+@bot.message_handler(func=lambda msg: msg.text == "تحويلات كاش و حوالات")
+def handle_transfers(msg):
+    from handlers.keyboards import transfers_menu
+    bot.send_message(msg.chat.id, "اختر نوع التحويل:", reply_markup=transfers_menu())
+    user_state[msg.from_user.id] = "transfers_menu"
+
 
 @bot.message_handler(func=lambda msg: msg.text == "شركة شخاشير")
 def handle_shakhashir(msg):
