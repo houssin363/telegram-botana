@@ -1,4 +1,11 @@
 import os
+import logging
+
+# إعداد تسجيل الأخطاء Logging (يُنصح أن يكون في أعلى الملف دائماً)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s"
+)
 
 # ✅ إعدادات البوت الأساسية
 API_TOKEN = "7936418161:AAGNZEMIGZEmPfYlCGQbO_vM9oQbQUVSiT4"
