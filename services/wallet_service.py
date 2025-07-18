@@ -156,7 +156,7 @@ def deduct_balance(user_id: int, amount: int, description: str = "خصم تلق�
     _update_balance(user_id, -amount)
     record_transaction(user_id, -amount, description)
 
-def transfer_balance(from_user_id: int, to_user_id: int, amount: int, fee: int = 8000) -> bool:
+def transfer_balance(from_user_id: int, to_user_id: int, amount: int, fee: int = 0) -> bool:
     """
     تحويل رصيد بين مستخدمين مع رسوم ثابتة.
     يُخصَم (amount + fee) من المُرسِل، ويُودَع amount لدى المستقبِل.
