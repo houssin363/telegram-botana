@@ -13,7 +13,7 @@ def main_menu():
     return markup
 
 def products_menu():
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
         types.KeyboardButton("🎮 شحن ألعاب و تطبيقات"),
         types.KeyboardButton("💳 تحويل وحدات فاتورة سوري"),
@@ -26,7 +26,7 @@ def products_menu():
 
 # قائمة التحويلات المدمجة
 def transfers_menu():
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
         types.KeyboardButton("💵 تحويل الى رصيد كاش"),
         types.KeyboardButton("حوالة مالية عبر شركات"),
@@ -35,7 +35,7 @@ def transfers_menu():
     return markup
 
 def game_categories():
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
         types.KeyboardButton("🎯 شحن شدات ببجي العالمية"),
         types.KeyboardButton("🔥 شحن جواهر فري فاير"),
@@ -45,7 +45,7 @@ def game_categories():
     return markup
 
 def recharge_menu():
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
         types.KeyboardButton("📲 سيرياتيل كاش"),
         types.KeyboardButton("📲 أم تي إن كاش"),
@@ -57,7 +57,7 @@ def recharge_menu():
     return markup
 
 def cash_transfer_menu():
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
         types.KeyboardButton("تحويل إلى سيرياتيل كاش"),
         types.KeyboardButton("تحويل إلى أم تي إن كاش"),
@@ -68,7 +68,7 @@ def cash_transfer_menu():
     return markup
 
 def companies_transfer_menu():
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
         types.KeyboardButton("شركة الهرم"),
         types.KeyboardButton("شركة الفؤاد"),
@@ -87,7 +87,7 @@ def syrian_balance_menu():
     return markup
 
 def wallet_menu():
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
     markup.add(
         types.KeyboardButton("💰 محفظتي"),
         types.KeyboardButton("🛍️ مشترياتي"),
@@ -107,7 +107,7 @@ def support_menu():
     return markup
 
 def links_menu():
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
         types.KeyboardButton("🌐 موقعنا"),
         types.KeyboardButton("📘 فيس بوك"),
@@ -117,7 +117,7 @@ def links_menu():
     return markup
 
 def media_services_menu():
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
         types.KeyboardButton("🖼️ تصميم لوغو احترافي"),
         types.KeyboardButton("📱 إدارة ونشر يومي"),
