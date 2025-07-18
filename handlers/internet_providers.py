@@ -1,15 +1,25 @@
 # -*- coding: utf-8 -*-
-# handlers/internet_providers.py  (نسخة مُحدَّثة بأزرار InlineKeyboardMarkup)
+# handlers/internet_providers.py  (Inline + موافقة أدمن قبل الخصم + رد أدمن للمستخدم)
 #
-# تمت تلبية طلب: التحويل من ReplyKeyboardMarkup إلى InlineKeyboardMarkup فقط،
-# مع الحفاظ على التدفق العام (اختيار مزود > سرعة > إدخال رقم > تأكيد/إلغاء).
-# لم يتم إجراء تغييرات أخرى غير لازمة (منطق الرصيد/الحفظ كما هو متوقَّع).
+# التعديلات حسب الطلب:
+# - لا يُخصم من محفظة المستخدم قبل موافقة الأدمن.
+# - عند ضغط المستخدم "تأكيد" يُنشأ طلب (PENDING) ويُرسل للأدمن بلوحة (قبول/رفض/رسالة للمستخدم).
+# - عند رفض الأدمن: يُزال الطلب ويُرسل تنويه للمستخدم (يمكن إضافة سبب/صورة).
+# - عند قبول الأدمن: يتم التحقق من الرصيد في لحظة القبول؛
+#   * إن كان غير كافٍ -> لا خصم، يُخبر الأدمن والمستخدم بالمبلغ الناقص.
+#   * إن كان كافياً -> يُخصم ثم يُؤكَّد التنفيذ.
+# - تحديث نص طلب الرقم: "أرسل رقم الهاتف / الحساب المطلوب شحنه (مع رمز المحافظة، مثال: 011XXXXXXX)".
 #
-# ملاحظة: إذا كان لديك نظام تسجيل منفصل، تأكد من استدعاء register(bot) في مكانه المعتاد.
+# ملاحظة: استُخدِم تخزين بسيط بالذاكرة (pending_orders) لإدارة الطلبات بانتظار موافقة الأدمن.
+#         إن رغبت تخزينها بقاعدة بياناتك، عدِّل الدوال _create_pending_order / _get_pending / _del_pending.
 
 from telebot import types
 from database.models.product import Product
 from services.wallet_service import has_sufficient_balance, deduct_balance
+try:
+    from services.wallet_service import get_balance  # قد لا يكون موجوداً في مشروعك
+except ImportError:  # Fallback
+    get_balance = None
 from config import ADMIN_MAIN_ID
 
 # ============================
@@ -36,67 +46,95 @@ user_net_state = {}  # {user_id: {step, provider?, speed?, price?, phone?}}
 #   حساب العمولة المجمّعة
 # ============================
 def calculate_commission(amount: int) -> int:
-    """احسب العمولة بتجميع 600 لكل 5000 (تقريب لأعلى)."""
     if amount <= 0:
         return 0
-    # تقسيم مع تقريب للأعلى
-    blocks = (amount + 5000 - 1) // 5000
+    blocks = (amount + 5000 - 1) // 5000  # تقريب للأعلى
     return blocks * COMMISSION_PER_5000
 
 
 # ============================
-#   مفاتيح callback ثابتة
+#   مفاتيح callback
 # ============================
 CB_PROV_PREFIX = "iprov"       # اختيار مزوّد
 CB_SPEED_PREFIX = "ispeed"     # اختيار سرعة (index)
 CB_BACK_PROV = "iback_prov"    # رجوع لقائمة المزودين
 CB_BACK_SPEED = "iback_speed"  # رجوع لقائمة السرعات
-CB_CONFIRM = "iconfirm"        # تأكيد الطلب
-CB_CANCEL = "icancel"          # إلغاء
+CB_CONFIRM = "iconfirm"        # تأكيد الطلب (يرسَل للأدمن ولا خصم)
+CB_CANCEL = "icancel"          # إلغاء من جهة المستخدم
+
+# أدمن
+CB_ADM_APPROVE_PREFIX = "iadm_ok"   # iadm_ok:<oid>
+CB_ADM_REJECT_PREFIX  = "iadm_no"   # iadm_no:<oid>
+CB_ADM_MSG_PREFIX     = "iadm_msg"  # iadm_msg:<oid>  (إرسال رسالة/صورة للمستخدم)
+
+
+# ============================
+#   تخزين طلبات معلّقة بانتظار الأدمن
+# ============================
+# structure: {oid: {user_id, provider, speed, phone, price, comm, total, status}}
+# status: PENDING | APPROVED | REJECTED
+pending_orders = {}
+_next_oid = 1
+
+def _new_oid() -> int:
+    global _next_oid
+    oid = _next_oid
+    _next_oid += 1
+    return oid
+
+def _create_pending_order(data: dict) -> int:
+    oid = _new_oid()
+    pending_orders[oid] = {**data, "status": "PENDING"}
+    return oid
+
+def _get_pending(oid: int):
+    return pending_orders.get(oid)
+
+def _del_pending(oid: int):
+    pending_orders.pop(oid, None)
 
 
 # ============================
 #   توليد لوحات Inline
 # ============================
 def _provider_inline_kb() -> types.InlineKeyboardMarkup:
-    """لوحة اختيار مزوّد (telebot لا يوفّر insert؛ نستخدم add(*buttons))."""
+    """لوحة اختيار مزوّد (telebot: استخدم add(*btns))."""
     kb = types.InlineKeyboardMarkup(row_width=2)
-    buttons = []
-    for name in INTERNET_PROVIDERS:
-        buttons.append(
-            types.InlineKeyboardButton(
-                text=f"🌐 {name}",
-                callback_data=f"{CB_PROV_PREFIX}:{name}"
-            )
-        )
-    if buttons:
-        kb.add(*buttons)  # telebot يقوم بتوزيعها حسب row_width
+    btns = [types.InlineKeyboardButton(f"🌐 {name}", callback_data=f"{CB_PROV_PREFIX}:{name}") for name in INTERNET_PROVIDERS]
+    if btns:
+        kb.add(*btns)
     kb.add(types.InlineKeyboardButton("❌ إلغاء", callback_data=CB_CANCEL))
     return kb
 
-
 def _speeds_inline_kb() -> types.InlineKeyboardMarkup:
-    """لوحة اختيار السرعة."""
     kb = types.InlineKeyboardMarkup(row_width=2)
-    buttons = []
+    btns = []
     for idx, speed in enumerate(INTERNET_SPEEDS):
-        buttons.append(
+        btns.append(
             types.InlineKeyboardButton(
                 text=f"{speed['label']} - {speed['price']:,} ل.س",
                 callback_data=f"{CB_SPEED_PREFIX}:{idx}"
             )
         )
-    if buttons:
-        kb.add(*buttons)
+    if btns:
+        kb.add(*btns)
     kb.add(types.InlineKeyboardButton("⬅️ رجوع", callback_data=CB_BACK_PROV))
     return kb
 
-
 def _confirm_inline_kb() -> types.InlineKeyboardMarkup:
     kb = types.InlineKeyboardMarkup(row_width=2)
-    kb.add(types.InlineKeyboardButton("✅ تأكيد", callback_data=CB_CONFIRM))
+    kb.add(types.InlineKeyboardButton("✅ إرسال للادمن", callback_data=CB_CONFIRM))
     kb.add(types.InlineKeyboardButton("⬅️ تعديل", callback_data=CB_BACK_SPEED))
     kb.add(types.InlineKeyboardButton("❌ إلغاء", callback_data=CB_CANCEL))
+    return kb
+
+def _admin_order_kb(oid: int) -> types.InlineKeyboardMarkup:
+    kb = types.InlineKeyboardMarkup(row_width=2)
+    kb.add(
+        types.InlineKeyboardButton("✅ موافقة", callback_data=f"{CB_ADM_APPROVE_PREFIX}:{oid}"),
+        types.InlineKeyboardButton("❌ رفض", callback_data=f"{CB_ADM_REJECT_PREFIX}:{oid}")
+    )
+    kb.add(types.InlineKeyboardButton("💬 رسالة للمستخدم", callback_data=f"{CB_ADM_MSG_PREFIX}:{oid}"))
     return kb
 
 
@@ -104,7 +142,6 @@ def _confirm_inline_kb() -> types.InlineKeyboardMarkup:
 #   بدء قائمة مزودي الإنترنت
 # ============================
 def start_internet_provider_menu(bot, message):
-    """إرسال قائمة مزودي الإنترنت بأزرار Inline."""
     bot.send_message(
         message.chat.id,
         "⚠️ اختر أحد مزودات الإنترنت:\n💸 العمولة لكل 5000 ل.س = 600 ل.س",
@@ -120,7 +157,6 @@ import re
 _PHONE_RE = re.compile(r"[+\d]+")
 
 def _normalize_phone(txt: str) -> str:
-    """إزالة أي محارف غير أرقام أو + وجمعها في سلسلة واحدة."""
     if not txt:
         return ""
     clean = txt.replace(" ", "").replace("-", "").replace("_", "")
@@ -132,9 +168,9 @@ def _normalize_phone(txt: str) -> str:
 #   التسجيل في البوت
 # ============================
 def register(bot):
-    """تسجيل معالجات الرسائل و callback لمزوّدات الإنترنت."""
+    """تسجيل معالجات مزودي الإنترنت."""
 
-    # --- فتح القائمة من زر رئيسي (نفس النص القديم لعدم كسر بقية الملفات) ---
+    # --- فتح القائمة من زر رئيسي (للتوافق) ---
     @bot.message_handler(func=lambda msg: msg.text == "🌐 دفع مزودات الإنترنت ADSL")
     def open_net_menu(msg):
         start_internet_provider_menu(bot, msg)
@@ -188,11 +224,10 @@ def register(bot):
         st = user_net_state.setdefault(user_id, {})
         st.update({"step": "enter_phone", "speed": speed["label"], "price": speed["price"]})
 
-        bot.answer_callback_query(call.id)  # اغلاق نافذة التحميل
-        # أرسل رسالة جديدة لطلب الرقم (لا نحرر الرسالة السابقة لعدم فقد سجل)
+        bot.answer_callback_query(call.id)
         bot.send_message(
             call.message.chat.id,
-            "📱 أرسل رقم الهاتف / الحساب المطلوب شحنه (أرقام فقط، يمكنك تضمين + أو 0).\nأرسل /cancel للإلغاء."
+            "📱 أرسل رقم الهاتف / الحساب المطلوب شحنه (مع رمز المحافظة، مثال: 011XXXXXXX).\nأرسل /cancel للإلغاء."
         )
 
 
@@ -212,7 +247,7 @@ def register(bot):
         )
 
 
-    # إلغاء كامل
+    # إلغاء كامل (مستخدم)
     @bot.callback_query_handler(func=lambda c: c.data == CB_CANCEL)
     def cb_cancel(call):
         user_net_state.pop(call.from_user.id, None)
@@ -248,7 +283,8 @@ def register(bot):
             f"السعر: {price:,} ل.س\n"
             f"العمولة: {comm:,} ل.س\n"
             f"الإجمالي: {total:,} ل.س\n\n"
-            f"رقم: `{phone}`\n\nهل ترغب بالمتابعة؟"
+            f"رقم: `{phone}`\n\n"
+            "اضغط لإرسال الطلب إلى الأدمن (لن يتم خصم أي مبلغ الآن)."
         )
 
         bot.send_message(
@@ -260,7 +296,7 @@ def register(bot):
 
 
     # =========================
-    #   تأكيد الدفع
+    #   إرسال الطلب للأدمن (لا خصم)
     # =========================
     @bot.callback_query_handler(func=lambda c: c.data == CB_CONFIRM)
     def cb_confirm(call):
@@ -274,16 +310,18 @@ def register(bot):
         comm = calculate_commission(price)
         total = price + comm
 
-        # التحقق من الرصيد
-        if not has_sufficient_balance(user_id, total):
-            bot.answer_callback_query(call.id, "رصيد غير كافٍ.", show_alert=True)
-            bot.send_message(call.message.chat.id, "⚠️ رصيدك غير كافٍ لإتمام العملية.")
-            return
+        order_data = {
+            "user_id": user_id,
+            "provider": st['provider'],
+            "speed": st['speed'],
+            "phone": st['phone'],
+            "price": price,
+            "comm": comm,
+            "total": total,
+        }
+        oid = _create_pending_order(order_data)
 
-        # خصم الرصيد
-        deduct_balance(user_id, total)
-
-        # إنشاء سجل المنتج (حقول تقريبية، عدّل حسب نموذجك)
+        # إنشاء سجل المنتج بوضع PENDING (اختياري حسب نموذج DB)
         try:
             Product.create(
                 user_id=user_id,
@@ -293,30 +331,186 @@ def register(bot):
                 amount=price,
                 commission=comm,
                 total=total,
+                status="PENDING",
+                ext_id=oid,  # إن كان لديك حقل خارجي
             )
         except Exception as e:  # pylint: disable=broad-except
-            bot.send_message(ADMIN_MAIN_ID, f"[internet_providers] خطأ حفظ المنتج: {e}")
+            bot.send_message(ADMIN_MAIN_ID, f"[internet_providers] خطأ حفظ المنتج (PENDING): {e}")
 
-        # إشعار الإدمن بالطلب
-        admin_msg = (
-            "طلب دفع مزوّد إنترنت جديد:\n"
+        bot.answer_callback_query(call.id, "تم إرسال الطلب للأدمن.", show_alert=False)
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text="📨 تم إرسال طلبك لمسؤول البوت. سيتم إشعارك بعد المراجعة.",
+        )
+
+        # رسالة للأدمن مع لوحة الموافقة
+        adm_txt = (
+            "📥 *طلب جديد (إنترنت)*\n"
+            f"OID: {oid}\n"
             f"المستخدم: {user_id}\n"
             f"مزود: {st['provider']}\n"
             f"سرعة: {st['speed']}\n"
             f"رقم: {st['phone']}\n"
             f"المبلغ: {price:,} + عمولة {comm:,} = {total:,} ل.س"
         )
-        bot.send_message(ADMIN_MAIN_ID, admin_msg)
+        bot.send_message(
+            ADMIN_MAIN_ID,
+            adm_txt,
+            parse_mode="Markdown",
+            reply_markup=_admin_order_kb(oid)
+        )
 
-        # تأكيد للمستخدم
+        # لا نحذف الحالة كي لا يفقد المستخدم المعلومات؛ لكن نضع step=wait_admin
+        st["step"] = "wait_admin"
+
+
+    # =========================
+    #   أدمن: موافقة
+    # =========================
+    @bot.callback_query_handler(func=lambda c: c.data.startswith(f"{CB_ADM_APPROVE_PREFIX}:"))
+    def cb_adm_approve(call):
+        if call.from_user.id != ADMIN_MAIN_ID:
+            bot.answer_callback_query(call.id, "غير مخوَّل.", show_alert=True)
+            return
+
+        oid = int(call.data.split(":", 1)[1])
+        order = _get_pending(oid)
+        if not order or order.get("status") != "PENDING":
+            bot.answer_callback_query(call.id, "الطلب غير متاح.", show_alert=True)
+            return
+
+        user_id = order["user_id"]
+        total = order["total"]
+
+        # تحقق من الرصيد الآن
+        enough = has_sufficient_balance(user_id, total)
+        if not enough:
+            # احسب المبلغ الناقص إن أمكن
+            shortage = None
+            if get_balance:
+                try:
+                    bal = get_balance(user_id)
+                    shortage = total - bal
+                except Exception:
+                    shortage = None
+            bot.answer_callback_query(call.id, "رصيد المستخدم غير كافٍ.", show_alert=True)
+
+            # رسالة للأدمن
+            txt_adm = f"⚠️ لا يوجد رصيد كافٍ لدى المستخدم {user_id}. المطلوب: {total:,} ل.س."
+            if shortage and shortage > 0:
+                txt_adm += f" (الناقص: {shortage:,} ل.س)"
+            bot.send_message(call.message.chat.id, txt_adm)
+
+            # تنويه للمستخدم
+            txt_usr = f"⚠️ لا يكفي رصيدك لإتمام الطلب OID {oid}. المبلغ المطلوب: {total:,} ل.س."
+            if shortage and shortage > 0:
+                txt_usr += f" المبلغ الناقص: {shortage:,} ل.س."
+            bot.send_message(user_id, txt_usr)
+            return
+
+        # خصم الرصيد
+        deduct_balance(user_id, total)
+
+        # تحديث DB (إن أمكن)
+        try:
+            Product.update(status="APPROVED").where(Product.ext_id == oid).execute()
+        except Exception:
+            pass
+
+        # إشعار المستخدم
+        bot.send_message(user_id, f"✅ تم قبول طلبك (OID {oid}). سيتم التنفيذ قريبًا.")
+
+        # تحديث رسالة الأدمن
         bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
-            text="✅ تم استلام طلبك وسيجري التنفيذ قريبًا. شكراً لك!"
+            text=f"تمت الموافقة على الطلب OID {oid} وتم الخصم من رصيد المستخدم.",
         )
 
-        # مسح الحالة
-        user_net_state.pop(user_id, None)
+        order["status"] = "APPROVED"
+        _del_pending(oid)
+
+
+    # =========================
+    #   أدمن: رفض
+    # =========================
+    @bot.callback_query_handler(func=lambda c: c.data.startswith(f"{CB_ADM_REJECT_PREFIX}:"))
+    def cb_adm_reject(call):
+        if call.from_user.id != ADMIN_MAIN_ID:
+            bot.answer_callback_query(call.id, "غير مخوَّل.", show_alert=True)
+            return
+
+        oid = int(call.data.split(":", 1)[1])
+        order = _get_pending(oid)
+        if not order or order.get("status") != "PENDING":
+            bot.answer_callback_query(call.id, "الطلب غير متاح.", show_alert=True)
+            return
+
+        order["status"] = "REJECTED"
+        bot.answer_callback_query(call.id)
+
+        # نطلب من الأدمن إرسال سبب أو صورة (اختياري)
+        bot.send_message(call.message.chat.id, f"أرسل سبب/رسالة (أو صورة) لرفض الطلب OID {oid}.")
+        admin_reply_state['awaiting'][call.from_user.id] = ('reject', oid)
+
+
+    # =========================
+    #   أدمن: إرسال رسالة للمستخدم (بدون قبول/رفض)
+    # =========================
+    @bot.callback_query_handler(func=lambda c: c.data.startswith(f"{CB_ADM_MSG_PREFIX}:"))
+    def cb_adm_msg(call):
+        if call.from_user.id != ADMIN_MAIN_ID:
+            bot.answer_callback_query(call.id, "غير مخوَّل.", show_alert=True)
+            return
+
+        oid = int(call.data.split(":", 1)[1])
+        order = _get_pending(oid)
+        if not order:
+            bot.answer_callback_query(call.id, "الطلب غير متاح.", show_alert=True)
+            return
+
+        bot.answer_callback_query(call.id)
+        bot.send_message(call.message.chat.id, f"أرسل رسالة (أو صورة) للمستخدم بخصوص الطلب OID {oid}.")
+        admin_reply_state['awaiting'][call.from_user.id] = ('msg', oid)
+
+
+    # =========================
+    #   حالات انتظار رد أدمن (رسالة أو صورة)
+    # =========================
+    admin_reply_state = {'awaiting': {}}  # {admin_id: (mode, oid)}
+
+    @bot.message_handler(content_types=['text', 'photo'], func=lambda m: m.from_user.id == ADMIN_MAIN_ID and m.from_user.id in admin_reply_state['awaiting'])
+    def admin_reply_handler(msg):
+        mode, oid = admin_reply_state['awaiting'].pop(msg.from_user.id)
+        order = _get_pending(oid)
+        user_id = order["user_id"] if order else None
+
+        if not user_id:
+            bot.reply_to(msg, "لم يتم العثور على المستخدم.")
+            return
+
+        # إعادة توجيه / إرسال
+        if msg.content_type == 'photo':
+            # أكبر دقة هي آخر عنصر
+            file_id = msg.photo[-1].file_id
+            caption = msg.caption or ""
+            bot.send_photo(user_id, file_id, caption=caption)
+        else:
+            bot.send_message(user_id, msg.text)
+
+        if mode == 'reject':
+            # إعلام المستخدم بالرفض (إن لم يُذكر في الرسالة)
+            bot.send_message(user_id, f"❌ تم رفض طلبك OID {oid}.")
+            # تحديث DB
+            try:
+                Product.update(status="REJECTED").where(Product.ext_id == oid).execute()
+            except Exception:
+                pass
+            _del_pending(oid)
+            bot.reply_to(msg, f"تم رفض الطلب OID {oid} وإبلاغ المستخدم.")
+        else:
+            bot.reply_to(msg, f"تم إرسال رسالتك للمستخدم (OID {oid}).")
 
 
     # =========================
@@ -333,6 +527,4 @@ def register(bot):
     # =========================
     @bot.message_handler(func=lambda m: m.text == "⬅️ رجوع")
     def txt_back(msg):
-        # اجعلها تعيد فتح القائمة الرئيسية (متوافق مع القديم)
         start_internet_provider_menu(bot, msg)
-
