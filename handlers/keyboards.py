@@ -1,4 +1,4 @@
-from telebot import types
+أعد ارسال الملف كاملا معدلا دون اي تغير في باقي الاوامر                                                     ليتضمن دمج الزرين                                                                                                                 from telebot import types
 
 def main_menu():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
@@ -128,4 +128,4 @@ def media_services_menu():
     return markup
 
 def hide_keyboard():
-    return types.ReplyKeyboardRemove()
+    return types.ReplyKeyboardRemove()                
