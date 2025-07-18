@@ -6,9 +6,11 @@ from services.wallet_service import (
 )
 from services.cleanup_service import delete_inactive_users
 from services.recharge_service import validate_recharge_code
-import logging          # ← إضافة لتسجيل الأخطاء في Render
+import logging
 import json
 import os
+import re
+from database.db import get_table
 
 # ============= إضافة لمسح الطلب المعلق للعميل =============
 def clear_pending_request(user_id):
@@ -18,6 +20,20 @@ def clear_pending_request(user_id):
     except Exception:
         pass
 # =========================================================
+
+# ========== دعم الطوابير ==========
+@bot.message_handler(func=lambda msg: msg.text and re.match(r'/done_(\d+)', msg.text))
+def handle_done(msg):
+    req_id = int(re.match(r'/done_(\d+)', msg.text).group(1))
+    get_table("pending_requests").update({"status": "done"}).eq("id", req_id).execute()
+    bot.reply_to(msg, f"✅ تم إنهاء الطلب رقم {req_id}")
+
+@bot.message_handler(func=lambda msg: msg.text and re.match(r'/cancel_(\d+)', msg.text))
+def handle_cancel(msg):
+    req_id = int(re.match(r'/cancel_(\d+)', msg.text).group(1))
+    get_table("pending_requests").update({"status": "cancelled"}).eq("id", req_id).execute()
+    bot.reply_to(msg, f"🚫 تم إلغاء الطلب رقم {req_id}")
+# ================================
 
 # ملف تخزين عمليات الأكواد السرّية
 SECRET_CODES_FILE = "data/secret_codes.json"
